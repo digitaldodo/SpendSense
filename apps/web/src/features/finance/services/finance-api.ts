@@ -6,12 +6,20 @@ import type {
   Account,
   AccountMergePayload,
   BalanceCorrectionPayload,
+  Budget,
+  BudgetHistory,
+  BudgetPayload,
   BulkTransactionActionPayload,
   BulkTransactionActionResult,
   Category,
+  CategoryMergePayload,
+  CategoryPayload,
   DashboardFinanceSummary,
   DemoSeedResult,
+  GoalContributionPayload,
   PageResponse,
+  SavingsGoal,
+  SavingsGoalPayload,
   Transaction,
   TransactionDetail,
   TransactionFilters,
@@ -35,6 +43,102 @@ export async function getAccounts() {
 
 export async function getCategories() {
   const response = await authenticatedApiClient<ApiResponse<Category[]>>("/api/v1/categories");
+  return response.data;
+}
+
+export async function createCategory(payload: CategoryPayload) {
+  const response = await authenticatedApiClient<ApiResponse<Category>>("/api/v1/categories", {
+    method: "POST",
+    body: payload,
+  });
+  return response.data;
+}
+
+export async function updateCategory(categoryId: string, payload: CategoryPayload) {
+  const response = await authenticatedApiClient<ApiResponse<Category>>(`/api/v1/categories/${categoryId}`, {
+    method: "PATCH",
+    body: payload,
+  });
+  return response.data;
+}
+
+export async function mergeCategory(categoryId: string, payload: CategoryMergePayload) {
+  const response = await authenticatedApiClient<ApiResponse<Category>>(`/api/v1/categories/${categoryId}/merge`, {
+    method: "POST",
+    body: payload,
+  });
+  return response.data;
+}
+
+export async function getBudgets() {
+  const response = await authenticatedApiClient<ApiResponse<Budget[]>>("/api/v1/planning/budgets");
+  return response.data;
+}
+
+export async function createBudget(payload: BudgetPayload) {
+  const response = await authenticatedApiClient<ApiResponse<Budget>>("/api/v1/planning/budgets", {
+    method: "POST",
+    body: payload,
+  });
+  return response.data;
+}
+
+export async function updateBudget(budgetId: string, payload: BudgetPayload) {
+  const response = await authenticatedApiClient<ApiResponse<Budget>>(`/api/v1/planning/budgets/${budgetId}`, {
+    method: "PATCH",
+    body: payload,
+  });
+  return response.data;
+}
+
+export async function deleteBudget(budgetId: string) {
+  const response = await authenticatedApiClient<ApiResponse<null>>(`/api/v1/planning/budgets/${budgetId}`, {
+    method: "DELETE",
+  });
+  return response.data;
+}
+
+export async function getBudgetHistory() {
+  const response = await authenticatedApiClient<ApiResponse<BudgetHistory[]>>("/api/v1/planning/budgets/history");
+  return response.data;
+}
+
+export async function getSavingsGoals() {
+  const response = await authenticatedApiClient<ApiResponse<SavingsGoal[]>>("/api/v1/planning/goals");
+  return response.data;
+}
+
+export async function createSavingsGoal(payload: SavingsGoalPayload) {
+  const response = await authenticatedApiClient<ApiResponse<SavingsGoal>>("/api/v1/planning/goals", {
+    method: "POST",
+    body: payload,
+  });
+  return response.data;
+}
+
+export async function updateSavingsGoal(goalId: string, payload: SavingsGoalPayload) {
+  const response = await authenticatedApiClient<ApiResponse<SavingsGoal>>(`/api/v1/planning/goals/${goalId}`, {
+    method: "PATCH",
+    body: payload,
+  });
+  return response.data;
+}
+
+export async function deleteSavingsGoal(goalId: string) {
+  const response = await authenticatedApiClient<ApiResponse<null>>(`/api/v1/planning/goals/${goalId}`, {
+    method: "DELETE",
+  });
+  return response.data;
+}
+
+export async function addGoalContribution(goalId: string, payload: GoalContributionPayload) {
+  const response = await authenticatedApiClient<ApiResponse<SavingsGoal>>(
+    `/api/v1/planning/goals/${goalId}/contributions`,
+    {
+      method: "POST",
+      body: payload,
+    }
+  );
   return response.data;
 }
 

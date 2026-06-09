@@ -15,6 +15,12 @@ public record DashboardFinanceSummaryResponse(
         List<TransactionResponse> recentTransactions,
         List<CategorySpendResponse> categoryBreakdown,
         List<MonthlySummaryResponse> monthlySummary,
-        List<ImportJobResponse> recentImports
+        List<ImportJobResponse> recentImports,
+        BudgetOverviewResponse budgetOverview,
+        List<CategorySpendResponse> topOverspendingCategories,
+        List<SavingsGoalResponse> savingsGoals,
+        FinancialHealthResponse financialHealth,
+        SavingsMomentumResponse savingsMomentum,
+        List<CategoryTrendResponse> categoryTrends
 ) {
 }

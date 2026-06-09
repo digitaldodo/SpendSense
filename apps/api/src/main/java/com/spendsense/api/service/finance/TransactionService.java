@@ -57,6 +57,7 @@ public class TransactionService {
     private final TransactionMapper transactionMapper;
     private final AccountMapper accountMapper;
     private final ImportMapper importMapper;
+    private final PlanningService planningService;
     private final UserProfileSyncService userProfileSyncService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -70,6 +71,7 @@ public class TransactionService {
             TransactionMapper transactionMapper,
             AccountMapper accountMapper,
             ImportMapper importMapper,
+            PlanningService planningService,
             UserProfileSyncService userProfileSyncService,
             ObjectMapper objectMapper
     ) {
@@ -81,6 +83,7 @@ public class TransactionService {
         this.transactionMapper = transactionMapper;
         this.accountMapper = accountMapper;
         this.importMapper = importMapper;
+        this.planningService = planningService;
         this.userProfileSyncService = userProfileSyncService;
         this.objectMapper = objectMapper;
         this.clock = Clock.systemUTC();
@@ -156,6 +159,16 @@ public class TransactionService {
         BigDecimal categoryTotal = categoryRows.stream()
                 .map(TransactionRepository.CategorySpendProjection::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        var monthlySummary = transactionRepository.monthlySummaryBetween(userProfileId, sixMonthsStart, nextMonthStart)
+                .stream()
+                .map(row -> new MonthlySummaryResponse(
+                        row.getPeriodStart().toInstant(),
+                        row.getIncome(),
+                        row.getExpense(),
+                        row.getIncome().subtract(row.getExpense())
+                ))
+                .toList();
+        var budgetOverview = planningService.budgetOverview(userProfileId);
 
         return new DashboardFinanceSummaryResponse(
                 accountRepository.countByUserProfileId(userProfileId),
@@ -185,20 +198,18 @@ public class TransactionService {
                                         : row.getTotal().multiply(BigDecimal.valueOf(100)).divide(categoryTotal, 2, RoundingMode.HALF_UP)
                         ))
                         .toList(),
-                transactionRepository.monthlySummaryBetween(userProfileId, sixMonthsStart, nextMonthStart)
-                        .stream()
-                        .map(row -> new MonthlySummaryResponse(
-                                row.getPeriodStart().toInstant(),
-                                row.getIncome(),
-                                row.getExpense(),
-                                row.getIncome().subtract(row.getExpense())
-                        ))
-                        .toList(),
+                monthlySummary,
                 importJobRepository.findTop20ByUserProfileIdOrderByStartedAtDesc(userProfileId)
                         .stream()
                         .limit(5)
                         .map(importMapper::toResponse)
-                        .toList()
+                        .toList(),
+                budgetOverview,
+                planningService.topOverspendingCategories(budgetOverview),
+                planningService.listGoalResponses(userProfileId),
+                planningService.financialHealth(userProfileId, monthIncome, monthSpend, monthlySummary, budgetOverview),
+                planningService.savingsMomentum(userProfileId, monthIncome, monthSpend),
+                planningService.categoryTrends(userProfileId, sixMonthsStart, nextMonthStart)
         );
     }
 

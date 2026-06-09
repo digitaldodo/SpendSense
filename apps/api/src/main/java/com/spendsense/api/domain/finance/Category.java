@@ -84,4 +84,11 @@ public class Category extends BaseEntity {
     public int getSortOrder() {
         return sortOrder;
     }
+
+    public void updateDetails(String name, String slug, String colorToken, String iconName) {
+        this.name = name;
+        this.slug = slug;
+        this.colorToken = colorToken;
+        this.iconName = iconName;
+    }
 }

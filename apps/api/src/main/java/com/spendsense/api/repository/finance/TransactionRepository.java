@@ -2,6 +2,7 @@ package com.spendsense.api.repository.finance;
 
 import com.spendsense.api.domain.finance.Transaction;
 import com.spendsense.api.domain.finance.Account;
+import com.spendsense.api.domain.finance.Category;
 import com.spendsense.api.domain.finance.TransactionDirection;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -32,6 +33,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
     @Modifying
     @Query("update Transaction t set t.account = :targetAccount where t.userProfile.id = :userProfileId and t.account.id = :sourceAccountId")
     int moveTransactionsToAccount(UUID userProfileId, UUID sourceAccountId, Account targetAccount);
+
+    @Modifying
+    @Query("update Transaction t set t.category = :targetCategory where t.userProfile.id = :userProfileId and t.category.id = :sourceCategoryId")
+    int moveTransactionsToCategory(UUID userProfileId, UUID sourceCategoryId, Category targetCategory);
 
     @Query("""
             select coalesce(sum(t.amount), 0)
@@ -83,6 +88,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
             """, nativeQuery = true)
     List<MonthlySummaryProjection> monthlySummaryBetween(UUID userProfileId, Instant from, Instant to);
 
+    @Query(value = """
+            select
+                cast(c.id as varchar) as categoryId,
+                coalesce(c.name, 'Uncategorized') as name,
+                coalesce(c.color_token, 'neutral') as colorToken,
+                date_trunc('month', t.occurred_at) as periodStart,
+                coalesce(sum(t.amount), 0) as total
+            from transactions t
+            left join categories c on c.id = t.category_id
+            where t.user_profile_id = :userProfileId
+              and t.direction = 'DEBIT'
+              and t.status <> 'EXCLUDED'
+              and t.occurred_at >= :from
+              and t.occurred_at < :to
+            group by c.id, c.name, c.color_token, date_trunc('month', t.occurred_at)
+            order by periodStart asc, total desc
+            """, nativeQuery = true)
+    List<CategoryMonthlySpendProjection> categoryMonthlySpendBetween(UUID userProfileId, Instant from, Instant to);
+
     interface CategorySpendProjection {
         String getCategoryId();
 
@@ -101,5 +125,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
         BigDecimal getIncome();
 
         BigDecimal getExpense();
+    }
+
+    interface CategoryMonthlySpendProjection {
+        String getCategoryId();
+
+        String getName();
+
+        String getColorToken();
+
+        OffsetDateTime getPeriodStart();
+
+        BigDecimal getTotal();
     }
 }

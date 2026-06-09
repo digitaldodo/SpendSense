@@ -19,4 +19,8 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
     Optional<Category> findVisibleById(UUID id, UUID userProfileId);
 
     Optional<Category> findBySlugAndUserProfileIdIsNull(String slug);
+
+    Optional<Category> findBySlugAndUserProfileId(String slug, UUID userProfileId);
+
+    boolean existsByIdAndUserProfileId(UUID id, UUID userProfileId);
 }
