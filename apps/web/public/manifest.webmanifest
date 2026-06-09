@@ -1,0 +1,10 @@
+{
+  "name": "SpendSense",
+  "short_name": "SpendSense",
+  "description": "Financial intelligence platform foundation.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f6f0",
+  "theme_color": "#167078",
+  "icons": []
+}

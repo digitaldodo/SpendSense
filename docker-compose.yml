@@ -1,0 +1,33 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: spendsense-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-spendsense}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-spendsense-local-password}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-spendsense}
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--eval",
+          "db.adminCommand('ping')",
+          "-u",
+          "${MONGO_INITDB_ROOT_USERNAME:-spendsense}",
+          "-p",
+          "${MONGO_INITDB_ROOT_PASSWORD:-spendsense-local-password}",
+          "--authenticationDatabase",
+          "admin"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongodb-data:

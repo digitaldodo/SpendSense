@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "vscjava.vscode-java-pack",
+    "vmware.vscode-spring-boot"
+  ]
+}

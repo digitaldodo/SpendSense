@@ -1,0 +1,11 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "typescript.tsdk": "apps/web/node_modules/typescript/lib",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "files.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/.gradle": true
+  }
+}

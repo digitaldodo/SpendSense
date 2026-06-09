@@ -1,0 +1,4 @@
+logging:
+  level:
+    com.spendsense.api: DEBUG
+    org.springframework.security: INFO
