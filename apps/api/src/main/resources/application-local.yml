@@ -2,3 +2,7 @@ logging:
   level:
     com.spendsense.api: DEBUG
     org.springframework.security: INFO
+
+spendsense:
+  demo:
+    enabled: ${SPENDSENSE_DEMO_ENABLED:true}

@@ -7,7 +7,7 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "spendsense")
-public record SpendSenseProperties(Api api, Security security, Cors cors) {
+public record SpendSenseProperties(Api api, Security security, Cors cors, Demo demo) {
     public record Api(@NotBlank String version, @NotBlank String publicBaseUrl) {
     }
 
@@ -23,5 +23,8 @@ public record SpendSenseProperties(Api api, Security security, Cors cors) {
     }
 
     public record Cors(List<String> allowedOrigins) {
+    }
+
+    public record Demo(Boolean enabled) {
     }
 }

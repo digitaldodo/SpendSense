@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  Compass,
   Home,
   Landmark,
   LifeBuoy,
+  ReceiptText,
   Sparkles,
   UserRound,
 } from "lucide-react";
@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/dashboard", label: "Plan", icon: Compass },
-  { href: "/dashboard", label: "Accounts", icon: Landmark },
+  { href: "/dashboard#transactions", label: "Transactions", icon: ReceiptText },
+  { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/dashboard", label: "Profile", icon: UserRound },
 ] as const;
 
@@ -55,7 +55,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             <nav className="mt-8 grid gap-1">
               {navItems.map((item, index) => {
                 const Icon = item.icon;
-                const active = index === 0 && pathname === item.href;
+                const active = item.href === "/accounts" ? pathname === "/accounts" : index === 0 && pathname === "/dashboard";
                 return (
                   <Link
                     key={`${item.label}-${index}`}
@@ -80,7 +80,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Foundation ready</p>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Your profile is complete. Financial tools arrive in the next build phase.
+                    Account and transaction foundations are ready for secure ingestion paths.
                   </p>
                 </div>
               </div>
@@ -116,7 +116,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
           {navItems.map((item, index) => {
             const Icon = item.icon;
-            const active = index === 0 && pathname === item.href;
+            const active = item.href === "/accounts" ? pathname === "/accounts" : index === 0 && pathname === "/dashboard";
             return (
               <Link
                 key={`${item.label}-mobile-${index}`}

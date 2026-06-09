@@ -4,7 +4,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_ENV: z
     .enum(["local", "development", "staging", "production"])
     .default("local"),
-  NEXT_PUBLIC_API_BASE_URL: z.string().url().default("http://localhost:8080/api/v1"),
+  NEXT_PUBLIC_API_BASE_URL: z.string().url().default("http://localhost:8080"),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().default("http://localhost:54321"),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).default("local-development-anon-key"),
 });
