@@ -49,6 +49,14 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", exception.getMessage(), Map.of(), request);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<ApiErrorResponse> handleBadRequest(
+            IllegalArgumentException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.BAD_REQUEST, "BAD_REQUEST", exception.getMessage(), Map.of(), request);
+    }
+
     @ExceptionHandler(OnboardingIncompleteException.class)
     ResponseEntity<ApiErrorResponse> handleOnboardingIncomplete(
             OnboardingIncompleteException exception,

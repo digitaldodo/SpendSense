@@ -1,0 +1,6 @@
+Transaction Date,Merchant,Description,Transaction ID,Amount,Dr/Cr
+01-06-2026,Amazon Pay India,Household purchase,WALLET-1001,2499.00,DR
+02-06-2026,Jio Recharge,Mobile plan,WALLET-1002,799.00,DR
+03-06-2026,Apollo Pharmacy,Medicines,WALLET-1003,1285.00,DR
+04-06-2026,UPI from Neha Shah,Shared expense,WALLET-1004,460.00,CR
+05-06-2026,Swiggy,Lunch order,WALLET-1005,386.00,DR

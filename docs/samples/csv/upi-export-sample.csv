@@ -1,0 +1,6 @@
+Txn Date,Payee,UPI Ref,Type,Amount,Remarks
+2026-06-01,Zomato,zomato@ybl/6152019981,DEBIT,612.50,Dinner order
+2026-06-02,Neha Shah,neha@okicici/6152011264,CREDIT,460.00,Cab reimbursement
+2026-06-03,Uber India,uber@axis/6152018830,DEBIT,734.00,Airport ride
+2026-06-04,House Help,help@upi/6152017744,DEBIT,4500.00,Monthly payment
+2026-06-05,Acme Fintech,acme@hdfcbank/6152011144,CREDIT,185000.00,Salary credit

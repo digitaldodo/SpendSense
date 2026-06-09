@@ -146,4 +146,10 @@ public class Account extends BaseEntity {
     public Instant getLastSyncedAt() {
         return lastSyncedAt;
     }
+
+    public void applyBalanceDelta(BigDecimal delta) {
+        this.currentBalance = this.currentBalance.add(delta);
+        this.availableBalance = this.currentBalance;
+        this.lastSyncedAt = Instant.now();
+    }
 }

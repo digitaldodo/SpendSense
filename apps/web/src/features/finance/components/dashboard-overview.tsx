@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CircleDollarSign,
+  FileUp,
   Landmark,
   LinkIcon,
   Loader2,
@@ -277,6 +278,10 @@ function DashboardEmptyState({ accountCount }: { accountCount: number }) {
             <Button render={<Link href="/accounts" />}>
               <LinkIcon className="size-4" aria-hidden />
               Connect account
+            </Button>
+            <Button variant="outline" render={<Link href="/imports" />}>
+              <FileUp className="size-4" aria-hidden />
+              Import CSV
             </Button>
             <Button variant="outline" disabled={seedDemo.isPending} onClick={() => seedDemo.mutate()}>
               {seedDemo.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}

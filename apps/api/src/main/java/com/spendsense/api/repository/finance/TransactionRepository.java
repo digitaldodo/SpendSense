@@ -19,6 +19,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
 
     long countByUserProfileIdAndSource(UUID userProfileId, com.spendsense.api.domain.finance.IngestionSource source);
 
+    boolean existsByUserProfileIdAndDedupeFingerprint(UUID userProfileId, String dedupeFingerprint);
+
+    boolean existsByUserProfileIdAndIdempotencyKey(UUID userProfileId, String idempotencyKey);
+
     @Query("""
             select coalesce(sum(t.amount), 0)
             from Transaction t

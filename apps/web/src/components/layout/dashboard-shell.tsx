@@ -2,6 +2,7 @@
 
 import {
   Home,
+  FileUp,
   Landmark,
   LifeBuoy,
   ReceiptText,
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/dashboard#transactions", label: "Transactions", icon: ReceiptText },
+  { href: "/imports", label: "Import", icon: FileUp },
   { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/dashboard", label: "Profile", icon: UserRound },
 ] as const;
@@ -55,7 +57,12 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             <nav className="mt-8 grid gap-1">
               {navItems.map((item, index) => {
                 const Icon = item.icon;
-                const active = item.href === "/accounts" ? pathname === "/accounts" : index === 0 && pathname === "/dashboard";
+                const active =
+                  item.href === "/accounts"
+                    ? pathname === "/accounts"
+                    : item.href === "/imports"
+                      ? pathname.startsWith("/imports")
+                      : index === 0 && pathname === "/dashboard";
                 return (
                   <Link
                     key={`${item.label}-${index}`}
@@ -113,10 +120,15 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/94 px-3 py-2 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {navItems.map((item, index) => {
             const Icon = item.icon;
-            const active = item.href === "/accounts" ? pathname === "/accounts" : index === 0 && pathname === "/dashboard";
+            const active =
+              item.href === "/accounts"
+                ? pathname === "/accounts"
+                : item.href === "/imports"
+                  ? pathname.startsWith("/imports")
+                  : index === 0 && pathname === "/dashboard";
             return (
               <Link
                 key={`${item.label}-mobile-${index}`}
