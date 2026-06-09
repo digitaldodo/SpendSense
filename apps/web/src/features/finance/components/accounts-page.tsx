@@ -1,11 +1,18 @@
 "use client";
 
-import { CreditCard, Landmark, LinkIcon, Loader2, Plus, RefreshCw, Wallet } from "lucide-react";
+import { CreditCard, Landmark, LinkIcon, Loader2, Merge, Plus, RefreshCw, Save, Wallet } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAccounts, useSeedDemoFinanceData } from "@/features/finance/hooks/use-finance";
+import {
+  useCorrectAccountBalance,
+  useMergeAccount,
+  useAccounts,
+  useSeedDemoFinanceData,
+} from "@/features/finance/hooks/use-finance";
 import { formatMoney } from "@/features/finance/lib/format";
 import type { Account, AccountType } from "@/features/finance/types";
 
@@ -76,7 +83,7 @@ export function AccountsPage() {
       ) : (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {accounts.map((account) => (
-            <AccountCard key={account.id} account={account} />
+            <AccountCard key={account.id} account={account} accounts={accounts} />
           ))}
         </section>
       )}
@@ -84,8 +91,13 @@ export function AccountsPage() {
   );
 }
 
-function AccountCard({ account }: { account: Account }) {
+function AccountCard({ account, accounts }: { account: Account; accounts: Account[] }) {
   const Icon = accountIconMap[account.accountType];
+  const mergeAccount = useMergeAccount(account.id);
+  const correctBalance = useCorrectAccountBalance(account.id);
+  const [targetAccountId, setTargetAccountId] = useState("");
+  const [correctedBalance, setCorrectedBalance] = useState(String(account.currentBalance));
+  const mergeTargets = accounts.filter((candidate) => candidate.id !== account.id && candidate.status === "ACTIVE");
 
   return (
     <Card className="rounded-lg border-border shadow-raised">
@@ -116,6 +128,74 @@ function AccountCard({ account }: { account: Account }) {
             icon={RefreshCw}
           />
         </div>
+        <div className="grid gap-2 rounded-lg border border-border/70 bg-muted/20 p-3">
+          <p className="text-sm font-medium">Balance correction</p>
+          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+            <Input
+              className="h-9"
+              inputMode="decimal"
+              value={correctedBalance}
+              onChange={(event) => setCorrectedBalance(event.target.value)}
+            />
+            <Button
+              size="sm"
+              disabled={correctBalance.isPending || Number.isNaN(Number(correctedBalance))}
+              onClick={() =>
+                correctBalance.mutate({
+                  correctedBalance: Number(correctedBalance),
+                  reason: "Manual balance correction",
+                })
+              }
+            >
+              {correctBalance.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Save className="size-4" aria-hidden />
+              )}
+              Save
+            </Button>
+          </div>
+        </div>
+        {mergeTargets.length > 0 ? (
+          <div className="grid gap-2 rounded-lg border border-border/70 bg-muted/20 p-3">
+            <p className="text-sm font-medium">Merge account</p>
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <select
+                className="h-9 min-w-0 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/50"
+                value={targetAccountId}
+                onChange={(event) => setTargetAccountId(event.target.value)}
+              >
+                <option value="">Select target</option>
+                {mergeTargets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {target.displayName}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={mergeAccount.isPending || !targetAccountId}
+                onClick={() =>
+                  mergeAccount.mutate(
+                    {
+                      targetAccountId,
+                      reason: "Manual account merge",
+                    },
+                    { onSuccess: () => setTargetAccountId("") }
+                  )
+                }
+              >
+                {mergeAccount.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Merge className="size-4" aria-hidden />
+                )}
+                Merge
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

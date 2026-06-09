@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -50,6 +51,12 @@ public class ImportJob extends BaseEntity {
 
     @Column(name = "summary_json", columnDefinition = "text")
     private String summaryJson;
+
+    @Column(name = "mapping_confidence_score", nullable = false, precision = 5, scale = 2)
+    private BigDecimal mappingConfidenceScore = BigDecimal.ZERO;
+
+    @Column(name = "reconciliation_metadata_json", columnDefinition = "text")
+    private String reconciliationMetadataJson;
 
     @Column(name = "records_seen", nullable = false)
     private int recordsSeen;
@@ -131,6 +138,14 @@ public class ImportJob extends BaseEntity {
         return summaryJson;
     }
 
+    public BigDecimal getMappingConfidenceScore() {
+        return mappingConfidenceScore;
+    }
+
+    public String getReconciliationMetadataJson() {
+        return reconciliationMetadataJson;
+    }
+
     public int getRecordsSeen() {
         return recordsSeen;
     }
@@ -160,7 +175,9 @@ public class ImportJob extends BaseEntity {
             int recordsImported,
             int recordsDuplicate,
             int recordsFailed,
-            String summaryJson
+            String summaryJson,
+            BigDecimal mappingConfidenceScore,
+            String reconciliationMetadataJson
     ) {
         this.status = recordsFailed > 0 ? ImportJobStatus.COMPLETED_WITH_ERRORS : ImportJobStatus.COMPLETED;
         this.completedAt = Instant.now();
@@ -169,6 +186,8 @@ public class ImportJob extends BaseEntity {
         this.recordsDuplicate = recordsDuplicate;
         this.recordsFailed = recordsFailed;
         this.summaryJson = summaryJson;
+        this.mappingConfidenceScore = mappingConfidenceScore;
+        this.reconciliationMetadataJson = reconciliationMetadataJson;
     }
 
     public void fail(int recordsSeen, int recordsFailed, String summaryJson) {

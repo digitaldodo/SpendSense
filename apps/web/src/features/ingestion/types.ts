@@ -51,6 +51,8 @@ export type CsvPreview = {
   fileSignature: string;
   columns: string[];
   mapping: CsvColumnMapping;
+  mappingConfidenceScore: number;
+  reusedMapping?: SavedImportMapping | null;
   recordsSeen: number;
   validRows: number;
   failedRows: number;
@@ -70,9 +72,46 @@ export type ImportJob = {
   recordsImported: number;
   recordsDuplicate: number;
   recordsFailed: number;
+  mappingConfidenceScore: number;
   startedAt: string;
   completedAt?: string | null;
   account?: Account | null;
+};
+
+export type SavedImportMapping = {
+  id: string;
+  source: IngestionSource;
+  name: string;
+  fileSignature: string;
+  mapping: CsvColumnMapping;
+  confidenceScore: number;
+  useCount: number;
+  lastUsedAt: string;
+};
+
+export type ReconciliationLog = {
+  id: string;
+  importJobId?: string | null;
+  accountId?: string | null;
+  status: ImportJobStatus;
+  recordsSeen: number;
+  recordsImported: number;
+  recordsDuplicate: number;
+  recordsFailed: number;
+  openingBalance?: number | null;
+  closingBalance?: number | null;
+  importedBalanceDelta: number;
+  metadataJson?: string | null;
+  createdAt: string;
+};
+
+export type ImportJobDetail = {
+  job: ImportJob;
+  mapping: CsvColumnMapping;
+  summaryJson?: string | null;
+  reconciliationMetadataJson?: string | null;
+  failures: ImportFailure[];
+  reconciliationLogs: ReconciliationLog[];
 };
 
 export type CsvImportSummary = {

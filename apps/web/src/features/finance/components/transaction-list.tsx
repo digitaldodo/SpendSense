@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, ReceiptText } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/features/finance/components/category-badge";
 import { TransactionDetailSheet } from "@/features/finance/components/transaction-detail-sheet";
 import {
@@ -18,9 +17,13 @@ import { cn } from "@/lib/utils";
 export function TransactionList({
   transactions,
   emptyLabel = "No transactions match this view.",
+  selectedIds = [],
+  onToggleSelected,
 }: {
   transactions: Transaction[];
   emptyLabel?: string;
+  selectedIds?: string[];
+  onToggleSelected?: (transactionId: string) => void;
 }) {
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
   const groups = groupTransactionsByDate(transactions);
@@ -53,16 +56,26 @@ export function TransactionList({
               {group.items.map((transaction, index) => {
                 const isCredit = transaction.direction === "CREDIT";
                 const Icon = isCredit ? ArrowDownLeft : ArrowUpRight;
+                const selected = selectedIds.includes(transaction.id);
                 return (
-                  <Button
+                  <div
                     key={transaction.id}
-                    variant="ghost"
                     className={cn(
-                      "grid h-auto w-full grid-cols-[2.5rem_1fr_auto] items-center gap-3 rounded-none px-3 py-3 text-left hover:bg-muted/55 sm:grid-cols-[2.5rem_1fr_auto_auto]",
+                      "grid w-full grid-cols-[auto_2.5rem_1fr_auto] items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/55 sm:grid-cols-[auto_2.5rem_1fr_auto_auto]",
                       index > 0 && "border-t border-border/70"
                     )}
-                    onClick={() => setSelectedTransactionId(transaction.id)}
                   >
+                    {onToggleSelected ? (
+                      <input
+                        aria-label={`Select ${transaction.merchantName}`}
+                        className="size-4 rounded border-border"
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => onToggleSelected(transaction.id)}
+                      />
+                    ) : (
+                      <span className="hidden" />
+                    )}
                     <span
                       className={cn(
                         "grid size-10 place-items-center rounded-lg",
@@ -71,14 +84,14 @@ export function TransactionList({
                     >
                       <Icon className="size-4" aria-hidden />
                     </span>
-                    <span className="min-w-0">
+                    <button className="min-w-0 text-left" onClick={() => setSelectedTransactionId(transaction.id)}>
                       <span className="block truncate text-sm font-semibold">
                         {formatMerchantName(transaction.merchantName)}
                       </span>
                       <span className="mt-1 block truncate text-xs text-muted-foreground">
                         {formatAccountLabel(transaction.account)} · {formatTransactionTime(transaction.occurredAt)}
                       </span>
-                    </span>
+                    </button>
                     <span className="hidden sm:block">
                       <CategoryBadge category={transaction.category} />
                     </span>
@@ -90,7 +103,7 @@ export function TransactionList({
                     >
                       {formatTransactionAmount(transaction)}
                     </span>
-                  </Button>
+                  </div>
                 );
               })}
             </div>

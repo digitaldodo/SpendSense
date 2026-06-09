@@ -152,4 +152,17 @@ public class Account extends BaseEntity {
         this.availableBalance = this.currentBalance;
         this.lastSyncedAt = Instant.now();
     }
+
+    public void correctBalance(BigDecimal correctedBalance, String metadataJson) {
+        this.currentBalance = correctedBalance;
+        this.availableBalance = correctedBalance;
+        this.metadataJson = metadataJson;
+        this.lastSyncedAt = Instant.now();
+    }
+
+    public void markMerged(String metadataJson) {
+        this.status = AccountStatus.DISCONNECTED;
+        this.metadataJson = metadataJson;
+        this.lastSyncedAt = Instant.now();
+    }
 }

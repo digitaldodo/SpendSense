@@ -1,6 +1,8 @@
 package com.spendsense.api.service.ingestion;
 
 import com.spendsense.api.dto.finance.CsvColumnMappingRequest;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
@@ -63,5 +65,22 @@ public class CsvColumnMappingService {
 
     private static String first(String requested, String detected) {
         return requested == null || requested.isBlank() ? detected : requested;
+    }
+
+    public BigDecimal confidenceScore(CsvColumnMappingRequest mapping) {
+        int required = hasText(mapping.date()) ? 1 : 0;
+        required += hasText(mapping.amount()) || hasText(mapping.debitAmount()) || hasText(mapping.creditAmount()) ? 1 : 0;
+        int useful = required;
+        useful += hasText(mapping.merchant()) ? 1 : 0;
+        useful += hasText(mapping.description()) ? 1 : 0;
+        useful += hasText(mapping.reference()) ? 1 : 0;
+        useful += hasText(mapping.balance()) ? 1 : 0;
+        BigDecimal base = BigDecimal.valueOf(required).multiply(BigDecimal.valueOf(35));
+        BigDecimal extras = BigDecimal.valueOf(Math.max(0, useful - required)).multiply(BigDecimal.valueOf(7.5));
+        return base.add(extras).min(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

@@ -10,7 +10,11 @@ public record DashboardFinanceSummaryResponse(
         BigDecimal totalBalance,
         BigDecimal monthSpend,
         BigDecimal monthIncome,
+        BigDecimal netCashflow,
         List<AccountResponse> accounts,
-        List<TransactionResponse> recentTransactions
+        List<TransactionResponse> recentTransactions,
+        List<CategorySpendResponse> categoryBreakdown,
+        List<MonthlySummaryResponse> monthlySummary,
+        List<ImportJobResponse> recentImports
 ) {
 }

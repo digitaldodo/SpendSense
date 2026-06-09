@@ -1,5 +1,6 @@
 package com.spendsense.api.dto.finance;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record CsvPreviewResponse(
@@ -8,6 +9,8 @@ public record CsvPreviewResponse(
         String fileSignature,
         List<String> columns,
         CsvColumnMappingRequest mapping,
+        BigDecimal mappingConfidenceScore,
+        SavedImportMappingResponse reusedMapping,
         int recordsSeen,
         int validRows,
         int failedRows,

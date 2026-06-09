@@ -1,6 +1,8 @@
 "use client";
 
-import { CalendarDays, Fingerprint, Landmark, ReceiptText, ShieldCheck } from "lucide-react";
+import { CalendarDays, Fingerprint, Landmark, Loader2, ReceiptText, Save, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -10,7 +12,11 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CategoryBadge } from "@/features/finance/components/category-badge";
-import { useTransactionDetail } from "@/features/finance/hooks/use-finance";
+import {
+  useCategories,
+  useTransactionDetail,
+  useUpdateTransaction,
+} from "@/features/finance/hooks/use-finance";
 import {
   formatAccountLabel,
   formatMerchantName,
@@ -30,7 +36,11 @@ export function TransactionDetailSheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const detailQuery = useTransactionDetail(open ? transactionId : null);
+  const categoriesQuery = useCategories();
+  const updateTransaction = useUpdateTransaction(transactionId);
   const transaction = detailQuery.data;
+  const [draftCategoryId, setDraftCategoryId] = useState<string | null>(null);
+  const categoryId = draftCategoryId ?? transaction?.category?.id ?? "";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -87,6 +97,45 @@ export function TransactionDetailSheet({
               />
               <DetailLine icon={ShieldCheck} label="Source" value={transaction.source.replace("_", " ")} />
               <DetailLine icon={Fingerprint} label="Dedupe fingerprint" value={transaction.dedupeFingerprint} mono />
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="grid gap-2">
+                <p className="text-sm font-medium">Category</p>
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <select
+                    className="h-10 min-w-0 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/50"
+                    value={categoryId}
+                    onChange={(event) => setDraftCategoryId(event.target.value)}
+                  >
+                    <option value="">Uncategorized</option>
+                    {(categoriesQuery.data ?? []).map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    disabled={updateTransaction.isPending || categoryId === (transaction.category?.id ?? "")}
+                    onClick={() =>
+                      updateTransaction.mutate(
+                        {
+                          categoryId: categoryId || null,
+                          reason: "Manual category edit",
+                        },
+                        { onSuccess: () => setDraftCategoryId(null) }
+                      )
+                    }
+                  >
+                    {updateTransaction.isPending ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Save className="size-4" aria-hidden />
+                    )}
+                    Save
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-4">

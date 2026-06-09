@@ -8,7 +8,10 @@ import type {
   CsvImportSummary,
   CsvPreview,
   ImportFailure,
+  ImportJobDetail,
   ImportJob,
+  ReconciliationLog,
+  SavedImportMapping,
 } from "@/features/ingestion/types";
 import { ApiError, type ApiErrorPayload } from "@/services/api/api-error";
 import type { ApiResponse } from "@/types/api";
@@ -41,6 +44,20 @@ async function authenticatedGet<T>(path: string): Promise<T> {
     headers.set("Authorization", `Bearer ${session.access_token}`);
   }
   const response = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}${path}`, { headers });
+  return parseJson<T>(response);
+}
+
+async function authenticatedJson<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const supabase = getSupabaseBrowserClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+  if (session?.access_token) {
+    headers.set("Authorization", `Bearer ${session.access_token}`);
+  }
+  const response = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}${path}`, { ...options, headers });
   return parseJson<T>(response);
 }
 
@@ -106,5 +123,37 @@ export async function getImportHistory() {
 
 export async function getImportFailures(jobId: string) {
   const response = await authenticatedGet<ApiResponse<ImportFailure[]>>(`/api/v1/imports/${jobId}/failures`);
+  return response.data;
+}
+
+export async function getImportDetail(jobId: string) {
+  const response = await authenticatedGet<ApiResponse<ImportJobDetail>>(`/api/v1/imports/${jobId}`);
+  return response.data;
+}
+
+export async function getImportReconciliation(jobId: string) {
+  const response = await authenticatedGet<ApiResponse<ReconciliationLog[]>>(
+    `/api/v1/imports/${jobId}/reconciliation`
+  );
+  return response.data;
+}
+
+export async function getSavedImportMappings() {
+  const response = await authenticatedGet<ApiResponse<SavedImportMapping[]>>("/api/v1/imports/mappings");
+  return response.data;
+}
+
+export async function renameSavedImportMapping(mappingId: string, name: string) {
+  const response = await authenticatedJson<ApiResponse<SavedImportMapping>>(`/api/v1/imports/mappings/${mappingId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+  return response.data;
+}
+
+export async function deleteSavedImportMapping(mappingId: string) {
+  const response = await authenticatedJson<ApiResponse<null>>(`/api/v1/imports/mappings/${mappingId}`, {
+    method: "DELETE",
+  });
   return response.data;
 }

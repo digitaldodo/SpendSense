@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, FileClock, FileText, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,10 +57,9 @@ export function ImportHistoryPage() {
         <section className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
           <div className="overflow-hidden rounded-lg border border-border bg-card shadow-raised">
             {jobs.map((job) => (
-              <button
+              <div
                 key={job.id}
                 className="grid w-full gap-2 border-b border-border/70 px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-muted/45 sm:grid-cols-[1fr_auto]"
-                onClick={() => setSelectedJobId(job.id)}
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -69,6 +69,14 @@ export function ImportHistoryPage() {
                   <p className="mt-1 text-sm text-muted-foreground">
                     {new Date(job.startedAt).toLocaleString("en-IN")} · {job.account?.displayName ?? "CSV account"}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-3 text-sm font-medium">
+                    <button className="text-primary" onClick={() => setSelectedJobId(job.id)}>
+                      Row issues
+                    </button>
+                    <Link className="text-primary" href={`/imports/${job.id}`}>
+                      Detail and reconciliation
+                    </Link>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-center text-sm sm:min-w-72">
                   <Metric label="Seen" value={job.recordsSeen} />
@@ -76,7 +84,7 @@ export function ImportHistoryPage() {
                   <Metric label="Dupes" value={job.recordsDuplicate} />
                   <Metric label="Failed" value={job.recordsFailed} />
                 </div>
-              </button>
+              </div>
             ))}
           </div>
 

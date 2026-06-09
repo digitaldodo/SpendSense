@@ -70,9 +70,27 @@ export type TransactionFilters = {
   categoryId?: string;
   direction?: TransactionDirection;
   status?: TransactionStatus;
+  from?: string;
+  to?: string;
   page?: number;
   size?: number;
   sort?: string;
+};
+
+export type CategorySpend = {
+  categoryId?: string | null;
+  name: string;
+  colorToken: string;
+  total: number;
+  transactionCount: number;
+  share: number;
+};
+
+export type MonthlySummary = {
+  periodStart: string;
+  income: number;
+  expense: number;
+  netCashflow: number;
 };
 
 export type DashboardFinanceSummary = {
@@ -82,12 +100,41 @@ export type DashboardFinanceSummary = {
   totalBalance: number;
   monthSpend: number;
   monthIncome: number;
+  netCashflow: number;
   accounts: Account[];
   recentTransactions: Transaction[];
+  categoryBreakdown: CategorySpend[];
+  monthlySummary: MonthlySummary[];
+  recentImports: import("@/features/ingestion/types").ImportJob[];
 };
 
 export type DemoSeedResult = {
   accountsCreated: number;
   transactionsCreated: number;
   alreadySeeded: boolean;
+};
+
+export type TransactionUpdatePayload = {
+  categoryId?: string | null;
+  status?: TransactionStatus;
+  reason?: string;
+};
+
+export type BulkTransactionActionPayload = TransactionUpdatePayload & {
+  transactionIds: string[];
+};
+
+export type BulkTransactionActionResult = {
+  requested: number;
+  updated: number;
+};
+
+export type AccountMergePayload = {
+  targetAccountId: string;
+  reason?: string;
+};
+
+export type BalanceCorrectionPayload = {
+  correctedBalance: number;
+  reason?: string;
 };

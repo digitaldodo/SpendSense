@@ -202,4 +202,16 @@ public class Transaction extends BaseEntity {
     public String getRawPayload() {
         return rawPayload;
     }
+
+    public void updateCategory(Category category) {
+        this.category = category;
+    }
+
+    public void updateStatus(TransactionStatus status) {
+        this.status = status;
+    }
+
+    public void moveToAccount(Account account) {
+        this.account = account;
+    }
 }

@@ -5,10 +5,13 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  FileCog,
   FileText,
   History,
   Loader2,
+  Pencil,
   RefreshCw,
+  Trash2,
   ShieldCheck,
   UploadCloud,
   X,
@@ -20,8 +23,19 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccounts } from "@/features/finance/hooks/use-finance";
 import { formatMoney } from "@/features/finance/lib/format";
-import { useConfirmCsvImport, usePreviewCsvImport } from "@/features/ingestion/hooks/use-ingestion";
-import type { CsvColumnMapping, CsvImportSummary, CsvPreview } from "@/features/ingestion/types";
+import {
+  useConfirmCsvImport,
+  useDeleteSavedImportMapping,
+  usePreviewCsvImport,
+  useRenameSavedImportMapping,
+  useSavedImportMappings,
+} from "@/features/ingestion/hooks/use-ingestion";
+import type {
+  CsvColumnMapping,
+  CsvImportSummary,
+  CsvPreview,
+  SavedImportMapping,
+} from "@/features/ingestion/types";
 import { cn } from "@/lib/utils";
 
 const maxBytes = 5 * 1024 * 1024;
@@ -29,6 +43,7 @@ const maxBytes = 5 * 1024 * 1024;
 export function CsvImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const accountsQuery = useAccounts();
+  const savedMappingsQuery = useSavedImportMappings();
   const previewMutation = usePreviewCsvImport();
   const importMutation = useConfirmCsvImport();
   const [file, setFile] = useState<File | null>(null);
@@ -171,6 +186,19 @@ export function CsvImportPage() {
             setAccountMode={setAccountMode}
             setAccountName={setAccountName}
             setInstitutionName={setInstitutionName}
+          />
+          <SavedMappingsPanel
+            currentSignature={preview?.fileSignature}
+            mappings={savedMappingsQuery.data ?? []}
+            onApply={(nextMapping) => {
+              setMapping(nextMapping);
+              if (file) {
+                void previewMutation.mutateAsync({ file, mapping: nextMapping }).then((nextPreview) => {
+                  setPreview(nextPreview);
+                  setMapping(nextPreview.mapping);
+                });
+              }
+            }}
           />
         </div>
 
@@ -341,15 +369,123 @@ function ImportConfidence({ preview }: { preview: CsvPreview }) {
     { label: "Ready", value: preview.validRows },
     { label: "Duplicates", value: preview.duplicateRows },
     { label: "Errors", value: preview.failedRows },
+    { label: "Mapping", value: `${Math.round(preview.mappingConfidenceScore)}%` },
   ];
   return (
-    <div className="grid gap-2 rounded-lg border border-border bg-card p-4 shadow-raised sm:grid-cols-4">
+    <div className="grid gap-2 rounded-lg border border-border bg-card p-4 shadow-raised sm:grid-cols-5">
+      {preview.reusedMapping ? (
+        <div className="rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 sm:col-span-5">
+          <p className="text-xs font-medium text-primary">Saved mapping reused</p>
+          <p className="truncate text-sm">{preview.reusedMapping.name}</p>
+        </div>
+      ) : null}
       {items.map((item) => (
         <div key={item.label} className="rounded-lg bg-muted/45 px-3 py-2">
           <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
           <p className="text-xl font-semibold">{item.value}</p>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SavedMappingsPanel({
+  currentSignature,
+  mappings,
+  onApply,
+}: {
+  currentSignature?: string;
+  mappings: SavedImportMapping[];
+  onApply: (mapping: CsvColumnMapping) => void;
+}) {
+  const renameMapping = useRenameSavedImportMapping();
+  const deleteMapping = useDeleteSavedImportMapping();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+
+  return (
+    <div className="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-raised">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="font-semibold">Saved mappings</h3>
+          <p className="text-sm text-muted-foreground">Reuse trusted column setups for recurring bank exports.</p>
+        </div>
+        <FileCog className="size-5 text-primary" aria-hidden />
+      </div>
+      {mappings.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border bg-muted/20 p-3 text-sm text-muted-foreground">
+          Successful imports save their mapping here.
+        </p>
+      ) : (
+        <div className="grid gap-2">
+          {mappings.map((mapping) => {
+            const isEditing = editingId === mapping.id;
+            const isMatch = currentSignature === mapping.fileSignature;
+            return (
+              <div key={mapping.id} className="grid gap-2 rounded-lg border border-border/70 bg-background/60 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  {isEditing ? (
+                    <Input className="h-9" value={name} onChange={(event) => setName(event.target.value)} />
+                  ) : (
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{mapping.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {Math.round(mapping.confidenceScore)}% confidence · used {mapping.useCount} time(s)
+                      </p>
+                    </div>
+                  )}
+                  {isMatch ? <Badge variant="secondary">Match</Badge> : null}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => onApply(mapping.mapping)}>
+                    Use
+                  </Button>
+                  {isEditing ? (
+                    <Button
+                      size="sm"
+                      disabled={renameMapping.isPending || !name.trim()}
+                      onClick={() =>
+                        renameMapping.mutate(
+                          { mappingId: mapping.id, name },
+                          {
+                            onSuccess: () => {
+                              setEditingId(null);
+                              setName("");
+                            },
+                          }
+                        )
+                      }
+                    >
+                      Save
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingId(mapping.id);
+                        setName(mapping.name);
+                      }}
+                    >
+                      <Pencil className="size-4" aria-hidden />
+                      Rename
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={deleteMapping.isPending}
+                    onClick={() => deleteMapping.mutate(mapping.id)}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -497,6 +633,9 @@ function ConfirmPanel({
         <Button render={<Link href="/dashboard" />}>
           View dashboard
           <ArrowRight className="size-4" aria-hidden />
+        </Button>
+        <Button variant="outline" render={<Link href={`/imports/${summary.job.id}`} />}>
+          Import detail
         </Button>
       </div>
     );
