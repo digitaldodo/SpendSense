@@ -49,6 +49,14 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", exception.getMessage(), Map.of(), request);
     }
 
+    @ExceptionHandler(OnboardingIncompleteException.class)
+    ResponseEntity<ApiErrorResponse> handleOnboardingIncomplete(
+            OnboardingIncompleteException exception,
+            HttpServletRequest request
+    ) {
+        return error(HttpStatus.CONFLICT, "ONBOARDING_INCOMPLETE", exception.getMessage(), Map.of(), request);
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception, HttpServletRequest request) {
         log.error("Unhandled API exception", exception);

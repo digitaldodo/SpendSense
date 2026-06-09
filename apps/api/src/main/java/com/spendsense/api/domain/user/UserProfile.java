@@ -22,6 +22,12 @@ public class UserProfile extends BaseEntity {
     @Column(name = "last_seen_at")
     private Instant lastSeenAt;
 
+    @Column(name = "onboarding_completed", nullable = false)
+    private boolean onboardingCompleted;
+
+    @Column(name = "onboarding_completed_at")
+    private Instant onboardingCompletedAt;
+
     protected UserProfile() {
     }
 
@@ -47,8 +53,25 @@ public class UserProfile extends BaseEntity {
         return lastSeenAt;
     }
 
+    public boolean isOnboardingCompleted() {
+        return onboardingCompleted;
+    }
+
+    public Instant getOnboardingCompletedAt() {
+        return onboardingCompletedAt;
+    }
+
     public void refreshFromAuth(String email) {
         this.email = email;
         this.lastSeenAt = Instant.now();
+    }
+
+    public void updateDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public void completeOnboarding() {
+        this.onboardingCompleted = true;
+        this.onboardingCompletedAt = Instant.now();
     }
 }

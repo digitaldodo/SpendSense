@@ -38,7 +38,7 @@ export function SignupForm() {
     const { data, error } = await supabase.auth.signUp({
       ...values,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/onboarding`,
       },
     });
 
@@ -49,7 +49,7 @@ export function SignupForm() {
     }
 
     if (data.session) {
-      router.replace("/dashboard");
+      router.replace("/onboarding");
       router.refresh();
       return;
     }

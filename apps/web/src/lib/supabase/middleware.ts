@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/config/env";
 
 const authRoutes = new Set(["/login", "/signup", "/forgot-password"]);
-const protectedPrefixes = ["/dashboard"];
+const protectedPrefixes = ["/dashboard", "/onboarding"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
