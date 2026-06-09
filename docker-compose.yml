@@ -1,33 +1,21 @@
 services:
-  mongodb:
-    image: mongo:8
-    container_name: spendsense-mongodb
+  postgres:
+    image: postgres:17
+    container_name: spendsense-postgres
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "5432:5432"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-spendsense}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-spendsense-local-password}
-      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-spendsense}
+      POSTGRES_USER: ${POSTGRES_USER:-spendsense}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-spendsense-local-password}
+      POSTGRES_DB: ${POSTGRES_DB:-spendsense}
     volumes:
-      - mongodb-data:/data/db
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mongosh",
-          "--eval",
-          "db.adminCommand('ping')",
-          "-u",
-          "${MONGO_INITDB_ROOT_USERNAME:-spendsense}",
-          "-p",
-          "${MONGO_INITDB_ROOT_PASSWORD:-spendsense-local-password}",
-          "--authenticationDatabase",
-          "admin"
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spendsense} -d ${POSTGRES_DB:-spendsense}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
-  mongodb-data:
+  postgres-data:

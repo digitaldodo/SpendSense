@@ -3,11 +3,11 @@ package com.spendsense.api;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.data.mongodb.config.EnableMongoAuditing;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
-@EnableMongoAuditing
+@EnableJpaAuditing
 public class SpendSenseApiApplication {
 
 	public static void main(String[] args) {

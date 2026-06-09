@@ -3,9 +3,20 @@ spring:
     name: SpendSense API
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://spendsense:spendsense-local-password@localhost:27017/spendsense?authSource=admin}
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/spendsense}
+    username: ${DATABASE_USERNAME:spendsense}
+    password: ${DATABASE_PASSWORD:spendsense-local-password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
 
 server:
   port: ${SERVER_PORT:8080}
@@ -17,10 +28,14 @@ spendsense:
     version: v1
     public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
   security:
-    jwt:
-      issuer: ${JWT_ISSUER:spendsense}
-      access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES:15}
-      refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:30}
+    supabase:
+      issuer: ${SUPABASE_JWT_ISSUER:http://localhost:54321/auth/v1}
+      audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
+      jwks-uri: ${SUPABASE_JWKS_URI:}
+      jwt-secret: ${SUPABASE_JWT_SECRET:}
+  cors:
+    allowed-origins:
+      - ${WEB_ORIGIN:http://localhost:3000}
 
 management:
   endpoints:
