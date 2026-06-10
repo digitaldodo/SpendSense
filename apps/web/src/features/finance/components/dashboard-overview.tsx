@@ -17,6 +17,7 @@ import {
   LinkIcon,
   Loader2,
   Merge,
+  Mail,
   PiggyBank,
   Plus,
   ReceiptText,
@@ -73,6 +74,7 @@ import type {
   TransactionDirection,
   TransactionStatus,
 } from "@/features/finance/types";
+import { useNotificationPreferences, useSystemStatus } from "@/features/notifications/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 
 const pageSize = 12;
@@ -267,8 +269,12 @@ function DashboardInsightStrip({ summary }: { summary: DashboardFinanceSummary }
 
 function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSummary }) {
   const notifications = summary.notificationDashboard;
+  const preferencesQuery = useNotificationPreferences();
+  const systemStatusQuery = useSystemStatus();
+  const preferences = preferencesQuery.data;
+  const systemStatus = systemStatusQuery.data;
   return (
-    <section className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
+    <section className="grid gap-4 xl:grid-cols-4">
       <Card className="rounded-lg border-border shadow-raised">
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
@@ -350,6 +356,26 @@ function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSu
           <Button className="mt-1 w-full" variant="outline" render={<Link href="/notifications?tab=reports" />}>
             <CalendarClock className="size-4" aria-hidden />
             Manage exports
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-lg border-border shadow-raised">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">Delivery status</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Reports, digests, and retry health.</p>
+          </div>
+          <Mail className="size-5 text-primary" aria-hidden />
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          <WidgetLine label="Report delivery" value={notifications.scheduledReports.length > 0 ? "Scheduled" : "Not set"} />
+          <WidgetLine label="Digest" value={preferences?.digestFrequency?.toLowerCase() ?? "loading"} />
+          <WidgetLine label="Email channel" value={preferences?.emailEnabled ? "On" : "Off"} />
+          <WidgetLine label="Pending retries" value={`${systemStatus?.pendingRetries ?? 0}`} />
+          <Button className="mt-1 w-full" variant="outline" render={<Link href="/notifications?tab=delivery" />}>
+            <Mail className="size-4" aria-hidden />
+            Delivery history
           </Button>
         </CardContent>
       </Card>

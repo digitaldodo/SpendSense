@@ -1,6 +1,9 @@
 package com.spendsense.api.controller.engagement;
 
 import com.spendsense.api.common.ApiResponse;
+import com.spendsense.api.dto.engagement.DeliveryHistoryResponse;
+import com.spendsense.api.dto.engagement.DeliveryRetryResponse;
+import com.spendsense.api.dto.engagement.EmailPreviewResponse;
 import com.spendsense.api.dto.engagement.NotificationDashboardResponse;
 import com.spendsense.api.dto.engagement.NotificationPreferenceRequest;
 import com.spendsense.api.dto.engagement.NotificationPreferenceResponse;
@@ -9,7 +12,12 @@ import com.spendsense.api.dto.engagement.NotificationSummaryResponse;
 import com.spendsense.api.dto.engagement.ReportDeliveryLogResponse;
 import com.spendsense.api.dto.engagement.ScheduledReportRequest;
 import com.spendsense.api.dto.engagement.ScheduledReportResponse;
+import com.spendsense.api.dto.engagement.SystemStatusResponse;
+import com.spendsense.api.dto.engagement.WorkerJobLogResponse;
 import com.spendsense.api.security.SupabasePrincipal;
+import com.spendsense.api.service.delivery.DeliveryMonitoringService;
+import com.spendsense.api.service.delivery.NotificationDeliveryService;
+import com.spendsense.api.service.delivery.WorkerObservabilityService;
 import com.spendsense.api.service.finance.NotificationEngagementService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -31,9 +39,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/notifications")
 public class NotificationController {
     private final NotificationEngagementService notificationEngagementService;
+    private final NotificationDeliveryService notificationDeliveryService;
+    private final DeliveryMonitoringService deliveryMonitoringService;
+    private final WorkerObservabilityService workerObservabilityService;
 
-    public NotificationController(NotificationEngagementService notificationEngagementService) {
+    public NotificationController(
+            NotificationEngagementService notificationEngagementService,
+            NotificationDeliveryService notificationDeliveryService,
+            DeliveryMonitoringService deliveryMonitoringService,
+            WorkerObservabilityService workerObservabilityService
+    ) {
         this.notificationEngagementService = notificationEngagementService;
+        this.notificationDeliveryService = notificationDeliveryService;
+        this.deliveryMonitoringService = deliveryMonitoringService;
+        this.workerObservabilityService = workerObservabilityService;
     }
 
     @GetMapping
@@ -190,6 +209,79 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.success(
                 notificationEngagementService.deliveryLogs(principal),
                 "Report delivery logs loaded.",
+                traceId
+        ));
+    }
+
+    @GetMapping("/deliveries")
+    ResponseEntity<ApiResponse<List<DeliveryHistoryResponse>>> deliveries(
+            @AuthenticationPrincipal SupabasePrincipal principal,
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                notificationDeliveryService.history(principal),
+                "Delivery history loaded.",
+                traceId
+        ));
+    }
+
+    @PostMapping("/deliveries/{deliveryId}/retry")
+    ResponseEntity<ApiResponse<DeliveryHistoryResponse>> retryDelivery(
+            @AuthenticationPrincipal SupabasePrincipal principal,
+            @PathVariable UUID deliveryId,
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                notificationDeliveryService.retryNow(principal, deliveryId),
+                "Delivery retry queued.",
+                traceId
+        ));
+    }
+
+    @GetMapping("/deliveries/{deliveryId}/retries")
+    ResponseEntity<ApiResponse<List<DeliveryRetryResponse>>> deliveryRetries(
+            @AuthenticationPrincipal SupabasePrincipal principal,
+            @PathVariable UUID deliveryId,
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                notificationDeliveryService.retries(principal, deliveryId),
+                "Delivery retry history loaded.",
+                traceId
+        ));
+    }
+
+    @GetMapping("/email-preview")
+    ResponseEntity<ApiResponse<EmailPreviewResponse>> emailPreview(
+            @AuthenticationPrincipal SupabasePrincipal principal,
+            @RequestParam(defaultValue = "WEEKLY_SUMMARY") String templateType,
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                deliveryMonitoringService.preview(principal, templateType),
+                "Email preview generated.",
+                traceId
+        ));
+    }
+
+    @GetMapping("/system-status")
+    ResponseEntity<ApiResponse<SystemStatusResponse>> systemStatus(
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                workerObservabilityService.systemStatus(),
+                "Delivery system status loaded.",
+                traceId
+        ));
+    }
+
+    @GetMapping("/worker-jobs")
+    ResponseEntity<ApiResponse<List<WorkerJobLogResponse>>> workerJobs(
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                workerObservabilityService.recentJobs(20),
+                "Worker job logs loaded.",
                 traceId
         ));
     }

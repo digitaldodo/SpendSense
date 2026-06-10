@@ -352,6 +352,13 @@ export type NotificationPreferences = {
   spendingIncreaseEnabled: boolean;
   weeklyDigestEnabled: boolean;
   monthlyReportEnabled: boolean;
+  emailEnabled: boolean;
+  emailAddress?: string | null;
+  digestFrequency: "OFF" | "WEEKLY" | "MONTHLY" | string;
+  budgetAlertEmailEnabled: boolean;
+  recurringReminderEmailEnabled: boolean;
+  reportEmailEnabled: boolean;
+  deliveryFailureAlertsEnabled: boolean;
   timezone: string;
   quietHoursStart?: string | null;
   quietHoursEnd?: string | null;
@@ -394,6 +401,71 @@ export type ReportDeliveryLog = {
   attemptedAt: string;
   deliveredAt?: string | null;
   errorMessage?: string | null;
+};
+
+export type DeliveryHistory = {
+  id: string;
+  notificationId?: string | null;
+  scheduledReportId?: string | null;
+  generatedReportId?: string | null;
+  deliveryKind: string;
+  channel: string;
+  provider: string;
+  recipient?: string | null;
+  subject?: string | null;
+  status: string;
+  attemptCount: number;
+  nextRetryAt?: string | null;
+  lastAttemptAt?: string | null;
+  deliveredAt?: string | null;
+  failedAt?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+};
+
+export type DeliveryRetry = {
+  id: string;
+  deliveryId: string;
+  attemptNumber: number;
+  scheduledFor: string;
+  attemptedAt?: string | null;
+  status: string;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+};
+
+export type EmailPreview = {
+  templateType: string;
+  subject: string;
+  html: string;
+  text: string;
+};
+
+export type WorkerJobLog = {
+  id: string;
+  jobName: string;
+  jobType: string;
+  status: string;
+  startedAt: string;
+  finishedAt?: string | null;
+  durationMs?: number | null;
+  recordsScanned: number;
+  recordsSucceeded: number;
+  recordsFailed: number;
+  heartbeatAt: string;
+  errorMessage?: string | null;
+};
+
+export type SystemStatus = {
+  status: string;
+  observedAt: string;
+  lastWorkerHeartbeatAt?: string | null;
+  deliveriesLast24h: number;
+  failedDeliveriesLast24h: number;
+  pendingRetries: number;
+  deliverySuccessRate: number;
+  recentJobs: WorkerJobLog[];
 };
 
 export type NotificationSummary = {

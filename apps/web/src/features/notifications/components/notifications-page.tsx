@@ -3,12 +3,17 @@
 import { useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
+  Activity,
+  AlertTriangle,
   Bell,
   CalendarClock,
   CheckCheck,
+  Eye,
   Inbox,
   Loader2,
+  Mail,
   Repeat2,
+  RefreshCw,
   Settings2,
   ShieldCheck,
   Trash2,
@@ -19,10 +24,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Notification, ScheduledReport } from "@/features/finance/types";
+import type { DeliveryHistory, Notification, ScheduledReport } from "@/features/finance/types";
 import {
   useCreateScheduledReport,
   useDeleteScheduledReport,
+  useDeliveryHistory,
+  useEmailPreview,
   useDismissNotification,
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -30,13 +37,16 @@ import {
   useNotificationSummary,
   useNotifications,
   useReportDeliveryLogs,
+  useRetryDelivery,
   useScheduledReports,
+  useSystemStatus,
   useUpdateNotificationPreferences,
   useUpdateScheduledReport,
+  useWorkerJobs,
 } from "@/features/notifications/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 
-type Tab = "inbox" | "recurring" | "reports" | "preferences";
+type Tab = "inbox" | "recurring" | "reports" | "delivery" | "preferences";
 
 export function NotificationsPage({ initialTab = "inbox" }: { initialTab?: Tab }) {
   const searchParams = useSearchParams();
@@ -67,6 +77,8 @@ export function NotificationsPage({ initialTab = "inbox" }: { initialTab?: Tab }
         </div>
       </section>
 
+      <SystemStatusWidget />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-card p-1 shadow-raised sm:flex">
           <TabButton active={tab === "inbox"} onClick={() => setTab("inbox")} icon={<Inbox className="size-4" />}>
@@ -77,6 +89,9 @@ export function NotificationsPage({ initialTab = "inbox" }: { initialTab?: Tab }
           </TabButton>
           <TabButton active={tab === "reports"} onClick={() => setTab("reports")} icon={<CalendarClock className="size-4" />}>
             Reports
+          </TabButton>
+          <TabButton active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Mail className="size-4" />}>
+            Delivery
           </TabButton>
           <TabButton active={tab === "preferences"} onClick={() => setTab("preferences")} icon={<Settings2 className="size-4" />}>
             Preferences
@@ -100,6 +115,8 @@ export function NotificationsPage({ initialTab = "inbox" }: { initialTab?: Tab }
         <RecurringReview notifications={notifications.filter((item) => item.type === "RECURRING_PAYMENT_DUE")} />
       ) : tab === "reports" ? (
         <ScheduledReportsView />
+      ) : tab === "delivery" ? (
+        <DeliveryHistoryView />
       ) : (
         <PreferencesView />
       )}
@@ -183,11 +200,13 @@ function ScheduledReportsView() {
   const [reportType, setReportType] = useState("MONTHLY_SUMMARY");
   const [format, setFormat] = useState("PDF");
   const [cadence, setCadence] = useState("MONTHLY");
+  const [deliveryChannel, setDeliveryChannel] = useState("EMAIL");
   const [timezone, setTimezone] = useState("Asia/Kolkata");
+  const previewQuery = useEmailPreview(cadence === "WEEKLY" ? "WEEKLY_SUMMARY" : "MONTHLY_FINANCIAL_SUMMARY");
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    createSchedule.mutate({ reportType, format, cadence, timezone, deliveryChannel: "IN_APP", active: true });
+    createSchedule.mutate({ reportType, format, cadence, timezone, deliveryChannel, active: true });
   }
 
   return (
@@ -210,6 +229,10 @@ function ScheduledReportsView() {
               <option value="MONTHLY">Monthly</option>
               <option value="WEEKLY">Weekly</option>
             </FilterSelect>
+            <FilterSelect value={deliveryChannel} onChange={setDeliveryChannel}>
+              <option value="EMAIL">Email</option>
+              <option value="IN_APP">In-app</option>
+            </FilterSelect>
             <Input value={timezone} onChange={(event) => setTimezone(event.target.value)} />
             <Button disabled={createSchedule.isPending}>
               {createSchedule.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <CalendarClock className="size-4" aria-hidden />}
@@ -220,6 +243,32 @@ function ScheduledReportsView() {
       </Card>
 
       <div className="grid gap-4">
+        <Card className="rounded-lg border-border shadow-raised">
+          <CardHeader className="flex flex-row items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">Report email preview</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">The same deterministic template used by the worker.</p>
+            </div>
+            <Eye className="size-5 text-primary" aria-hidden />
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {previewQuery.isLoading ? (
+              <Skeleton className="h-32 w-full" />
+            ) : previewQuery.data ? (
+              <div className="grid gap-3 rounded-lg border border-border/70 bg-background/70 p-3">
+                <p className="text-sm font-semibold">{previewQuery.data.subject}</p>
+                <div
+                  className="max-h-72 overflow-auto rounded-lg border border-border bg-muted/20"
+                  title="Email HTML preview"
+                  dangerouslySetInnerHTML={{ __html: previewQuery.data.html }}
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Preview is unavailable right now.</p>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="rounded-lg border-border shadow-raised">
           <CardHeader>
             <CardTitle className="text-base">Scheduled exports</CardTitle>
@@ -302,6 +351,120 @@ function ScheduledReportRow({ schedule, onPause }: { schedule: ScheduledReport; 
   );
 }
 
+function DeliveryHistoryView() {
+  const deliveryQuery = useDeliveryHistory();
+  const workerJobsQuery = useWorkerJobs();
+  const deliveries = deliveryQuery.data ?? [];
+  const failed = deliveries.filter((delivery) => delivery.status === "FAILED" || delivery.status === "RETRY_SCHEDULED");
+
+  if (deliveryQuery.isLoading) {
+    return <Skeleton className="h-96 w-full" />;
+  }
+
+  return (
+    <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <Card className="rounded-lg border-border shadow-raised">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">Delivery history</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Email attempts, retries, and final delivery states.</p>
+          </div>
+          <Mail className="size-5 text-primary" aria-hidden />
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {deliveries.length === 0 ? (
+            <EmptyState
+              icon={<Mail className="size-7 text-primary" aria-hidden />}
+              title="No email deliveries yet"
+              body="Digest and report delivery attempts will appear here once email delivery is enabled."
+            />
+          ) : (
+            deliveries.map((delivery) => <DeliveryRow key={delivery.id} delivery={delivery} />)
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4">
+        <Card className="rounded-lg border-border shadow-raised">
+          <CardHeader>
+            <CardTitle className="text-base">Failed delivery states</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            {failed.length === 0 ? (
+              <WidgetLine label="Retries" value="Clear" />
+            ) : (
+              failed.slice(0, 6).map((delivery) => (
+                <div key={`${delivery.id}-failed`} className="grid gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{delivery.subject ?? delivery.deliveryKind}</span>
+                    <StatusBadge status={delivery.status} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{delivery.errorMessage ?? "Retry scheduled by the worker."}</p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-lg border-border shadow-raised">
+          <CardHeader>
+            <CardTitle className="text-base">Worker activity</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            {(workerJobsQuery.data ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Worker runs will appear after the scheduler executes.</p>
+            ) : (
+              (workerJobsQuery.data ?? []).slice(0, 6).map((job) => (
+                <div key={job.id} className="grid gap-1 rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{job.jobName}</span>
+                    <StatusBadge status={job.status} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {job.recordsSucceeded} succeeded, {job.recordsFailed} failed
+                  </p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
+function DeliveryRow({ delivery }: { delivery: DeliveryHistory }) {
+  const retryDelivery = useRetryDelivery();
+  const canRetry = delivery.status === "FAILED" || delivery.status === "RETRY_SCHEDULED";
+  return (
+    <div className="grid gap-3 rounded-lg border border-border/70 bg-background/65 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate font-medium">{delivery.subject ?? delivery.deliveryKind}</p>
+          <StatusBadge status={delivery.status} />
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {delivery.channel.toLowerCase()} via {delivery.provider} to {delivery.recipient ?? "no recipient"}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Attempts: {delivery.attemptCount} · Created {formatDateTime(delivery.createdAt)}
+          {delivery.nextRetryAt ? ` · Next retry ${formatDateTime(delivery.nextRetryAt)}` : ""}
+        </p>
+        {delivery.errorMessage ? <p className="mt-2 text-xs text-warning">{delivery.errorMessage}</p> : null}
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!canRetry || retryDelivery.isPending}
+        onClick={() => retryDelivery.mutate(delivery.id)}
+      >
+        {retryDelivery.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <RefreshCw className="size-4" aria-hidden />}
+        Retry
+      </Button>
+    </div>
+  );
+}
+
 function PreferencesView() {
   const preferencesQuery = useNotificationPreferences();
   const updatePreferences = useUpdateNotificationPreferences();
@@ -312,7 +475,7 @@ function PreferencesView() {
   }
 
   return (
-    <section className="grid gap-4 lg:grid-cols-2">
+    <section className="grid gap-4 lg:grid-cols-3">
       <Card className="rounded-lg border-border shadow-raised">
         <CardHeader>
           <CardTitle className="text-base">Notification preferences</CardTitle>
@@ -350,6 +513,47 @@ function PreferencesView() {
               <Input type="time" defaultValue={preferences.quietHoursEnd ?? ""} onBlur={(event) => updatePreferences.mutate({ quietHoursEnd: event.target.value || null })} />
             </label>
           </div>
+        </CardContent>
+      </Card>
+      <Card className="rounded-lg border-border shadow-raised">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">Email delivery</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Channel controls for reports, digests, and retries.</p>
+          </div>
+          <Mail className="size-5 text-primary" aria-hidden />
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          <PreferenceToggle label="Email channel" value={preferences.emailEnabled} onChange={(value) => updatePreferences.mutate({ emailEnabled: value })} />
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium">Delivery email</span>
+            <Input
+              defaultValue={preferences.emailAddress ?? ""}
+              placeholder="name@example.com"
+              type="email"
+              onBlur={(event) => updatePreferences.mutate({ emailAddress: event.target.value || null })}
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium">Digest frequency</span>
+            <FilterSelect
+              value={preferences.digestFrequency ?? "OFF"}
+              onChange={(value) => updatePreferences.mutate({ digestFrequency: value })}
+            >
+              <option value="OFF">Off</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+            </FilterSelect>
+          </label>
+          <PreferenceToggle label="Budget alert emails" value={preferences.budgetAlertEmailEnabled} onChange={(value) => updatePreferences.mutate({ budgetAlertEmailEnabled: value })} />
+          <PreferenceToggle label="Recurring reminder emails" value={preferences.recurringReminderEmailEnabled} onChange={(value) => updatePreferences.mutate({ recurringReminderEmailEnabled: value })} />
+          <PreferenceToggle label="Report delivery emails" value={preferences.reportEmailEnabled} onChange={(value) => updatePreferences.mutate({ reportEmailEnabled: value })} />
+          <PreferenceToggle label="Failure alerts" value={preferences.deliveryFailureAlertsEnabled} onChange={(value) => updatePreferences.mutate({ deliveryFailureAlertsEnabled: value })} />
+          {updatePreferences.isPending ? (
+            <p className="text-xs text-muted-foreground">Saving preferences...</p>
+          ) : updatePreferences.isError ? (
+            <p className="text-xs text-warning">Could not save the latest preference change.</p>
+          ) : null}
         </CardContent>
       </Card>
     </section>
@@ -414,12 +618,74 @@ function PreferenceToggle({ label, value, onChange }: { label: string; value: bo
   );
 }
 
+function SystemStatusWidget() {
+  const statusQuery = useSystemStatus();
+  const status = statusQuery.data;
+  return (
+    <section className="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-raised lg:grid-cols-[auto_1fr_auto] lg:items-center">
+      <div className="flex items-center gap-3">
+        <span className={cn("grid size-10 place-items-center rounded-lg", status?.status === "DEGRADED" ? "bg-warning/15 text-warning" : "bg-success/15 text-success")}>
+          {status?.status === "DEGRADED" ? <AlertTriangle className="size-5" aria-hidden /> : <Activity className="size-5" aria-hidden />}
+        </span>
+        <div>
+          <p className="text-sm font-semibold">Delivery system</p>
+          <p className="text-xs text-muted-foreground">
+            {statusQuery.isLoading
+              ? "Checking worker status..."
+              : status?.status === "DEGRADED"
+                ? "Some deliveries need attention."
+                : status?.status === "WAITING"
+                  ? "Worker heartbeat is waiting."
+                  : "Workers are reporting normally."}
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <MiniMetric label="24h success" value={status ? `${status.deliverySuccessRate}%` : "--"} />
+        <MiniMetric label="Pending retries" value={`${status?.pendingRetries ?? 0}`} />
+        <MiniMetric label="Last heartbeat" value={status?.lastWorkerHeartbeatAt ? formatDateTime(status.lastWorkerHeartbeatAt) : "Waiting"} />
+      </div>
+      <Button className="w-full lg:w-fit" variant="outline" onClick={() => statusQuery.refetch()}>
+        <RefreshCw className="size-4" aria-hidden />
+        Refresh
+      </Button>
+    </section>
+  );
+}
+
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border/70 bg-background/65 px-3 py-2">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
     </div>
+  );
+}
+
+function WidgetLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-sm">
+      <span className="truncate text-muted-foreground">{label}</span>
+      <span className="shrink-0 font-medium tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const normalized = status.toUpperCase();
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium",
+        normalized === "DELIVERED" || normalized === "SUCCESS"
+          ? "bg-success/15 text-success"
+          : normalized === "FAILED" || normalized === "DEGRADED"
+            ? "bg-warning/15 text-warning"
+            : "bg-primary/10 text-primary"
+      )}
+    >
+      {normalized.replace("_", " ").toLowerCase()}
+    </span>
   );
 }
 

@@ -14,6 +14,9 @@ import com.spendsense.api.dto.finance.FinancialInsightsResponse;
 import com.spendsense.api.dto.finance.SavingsTrajectoryResponse;
 import com.spendsense.api.dto.finance.SpendingAnomalyResponse;
 import com.spendsense.api.security.SupabasePrincipal;
+import com.spendsense.api.service.delivery.DigestGenerationService;
+import com.spendsense.api.service.delivery.EmailTemplate;
+import com.spendsense.api.service.delivery.NotificationDeliveryService;
 import com.spendsense.api.service.user.UserProfileSyncService;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -31,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationEngagementService {
     private final UserProfileSyncService userProfileSyncService;
     private final FinancialInsightsService financialInsightsService;
+    private final NotificationDeliveryService notificationDeliveryService;
+    private final DigestGenerationService digestGenerationService;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -46,11 +50,15 @@ public class NotificationEngagementService {
     public NotificationEngagementService(
             UserProfileSyncService userProfileSyncService,
             FinancialInsightsService financialInsightsService,
+            NotificationDeliveryService notificationDeliveryService,
+            DigestGenerationService digestGenerationService,
             JdbcTemplate jdbcTemplate,
             ObjectMapper objectMapper
     ) {
         this.userProfileSyncService = userProfileSyncService;
         this.financialInsightsService = financialInsightsService;
+        this.notificationDeliveryService = notificationDeliveryService;
+        this.digestGenerationService = digestGenerationService;
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.clock = Clock.systemUTC();
@@ -120,7 +128,9 @@ public class NotificationEngagementService {
                 update notification_preferences
                 set in_app_enabled = ?, budget_warnings_enabled = ?, recurring_reminders_enabled = ?,
                     report_ready_enabled = ?, savings_nudges_enabled = ?, spending_increase_enabled = ?,
-                    weekly_digest_enabled = ?, monthly_report_enabled = ?, timezone = ?,
+                    weekly_digest_enabled = ?, monthly_report_enabled = ?, email_enabled = ?, email_address = ?,
+                    digest_frequency = ?, budget_alert_email_enabled = ?, recurring_reminder_email_enabled = ?,
+                    report_email_enabled = ?, delivery_failure_alerts_enabled = ?, timezone = ?,
                     quiet_hours_start = ?, quiet_hours_end = ?, updated_at = current_timestamp
                 where user_profile_id = ?
                 """,
@@ -132,6 +142,13 @@ public class NotificationEngagementService {
                 value(request.spendingIncreaseEnabled(), current.spendingIncreaseEnabled()),
                 value(request.weeklyDigestEnabled(), current.weeklyDigestEnabled()),
                 value(request.monthlyReportEnabled(), current.monthlyReportEnabled()),
+                value(request.emailEnabled(), current.emailEnabled()),
+                request.emailAddress() == null ? current.emailAddress() : request.emailAddress().trim(),
+                normalizeDigestFrequency(request.digestFrequency() == null ? current.digestFrequency() : request.digestFrequency()),
+                value(request.budgetAlertEmailEnabled(), current.budgetAlertEmailEnabled()),
+                value(request.recurringReminderEmailEnabled(), current.recurringReminderEmailEnabled()),
+                value(request.reportEmailEnabled(), current.reportEmailEnabled()),
+                value(request.deliveryFailureAlertsEnabled(), current.deliveryFailureAlertsEnabled()),
                 request.timezone() == null || request.timezone().isBlank() ? current.timezone() : request.timezone(),
                 request.quietHoursStart(),
                 request.quietHoursEnd(),
@@ -252,7 +269,6 @@ public class NotificationEngagementService {
                 """, this::deliveryLogRow, userProfileId);
     }
 
-    @Scheduled(fixedDelayString = "${spendsense.notifications.scheduler-delay-ms:300000}")
     @Transactional
     public void runScheduledEngagementJobs() {
         List<UUID> users = jdbcTemplate.query("select id from user_profiles", (rs, rowNum) -> rs.getObject("id", UUID.class));
@@ -432,8 +448,31 @@ public class NotificationEngagementService {
                 insert into report_delivery_logs (
                     id, scheduled_report_id, generated_report_id, user_profile_id, delivery_channel, status,
                     delivered_at, metadata_json, created_at, updated_at
-                ) values (?, ?, ?, ?, ?, 'READY', current_timestamp, ?, current_timestamp, current_timestamp)
-                """, UUID.randomUUID(), schedule.id(), reportId, schedule.userProfileId(), schedule.deliveryChannel(), writeJson(Map.of("filename", filename)));
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp)
+                """,
+                UUID.randomUUID(),
+                schedule.id(),
+                reportId,
+                schedule.userProfileId(),
+                schedule.deliveryChannel(),
+                schedule.deliveryChannel().equals("EMAIL") ? "QUEUED" : "READY",
+                schedule.deliveryChannel().equals("EMAIL") ? null : Instant.now(clock),
+                writeJson(Map.of("filename", filename))
+        );
+        if (schedule.deliveryChannel().equals("EMAIL")) {
+            EmailTemplate template = schedule.cadence().equals("WEEKLY")
+                    ? digestGenerationService.weeklySummary(schedule.userProfileId())
+                    : digestGenerationService.monthlySummary(schedule.userProfileId());
+            notificationDeliveryService.queueEmail(
+                    schedule.userProfileId(),
+                    null,
+                    schedule.id(),
+                    reportId,
+                    schedule.cadence().equals("WEEKLY") ? "WEEKLY_SUMMARY" : "MONTHLY_FINANCIAL_SUMMARY",
+                    template,
+                    null
+            );
+        }
         createNotification(
                 schedule.userProfileId(),
                 schedule.cadence().equals("WEEKLY") ? "WEEKLY_SUMMARY_READY" : "REPORT_READY",
@@ -463,8 +502,10 @@ public class NotificationEngagementService {
                         id, user_profile_id, in_app_enabled, budget_warnings_enabled,
                         recurring_reminders_enabled, report_ready_enabled, savings_nudges_enabled,
                         spending_increase_enabled, weekly_digest_enabled, monthly_report_enabled,
-                        timezone, created_at, updated_at
-                    ) values (?, ?, true, true, true, true, true, true, false, false, ?, current_timestamp, current_timestamp)
+                        email_enabled, digest_frequency, budget_alert_email_enabled, recurring_reminder_email_enabled,
+                        report_email_enabled, delivery_failure_alerts_enabled, timezone, created_at, updated_at
+                    ) values (?, ?, true, true, true, true, true, true, false, false,
+                        false, 'OFF', false, false, false, true, ?, current_timestamp, current_timestamp)
                     """, UUID.randomUUID(), userProfileId, "Asia/Kolkata");
         }
         return preference(userProfileId);
@@ -609,6 +650,14 @@ public class NotificationEngagementService {
         return normalized.equals("WEEKLY") ? "WEEKLY" : "MONTHLY";
     }
 
+    private String normalizeDigestFrequency(String frequency) {
+        String normalized = frequency == null ? "OFF" : frequency.trim().toUpperCase().replace("-", "_");
+        return switch (normalized) {
+            case "WEEKLY", "MONTHLY" -> normalized;
+            default -> "OFF";
+        };
+    }
+
     private String normalizeReportType(String reportType) {
         String normalized = reportType == null ? "MONTHLY_SUMMARY" : reportType.trim().toUpperCase().replace("-", "_");
         return normalized.equals("CATEGORY_REPORT") ? "CATEGORY_REPORT" : "MONTHLY_SUMMARY";
@@ -664,6 +713,13 @@ public class NotificationEngagementService {
                 rs.getBoolean("spending_increase_enabled"),
                 rs.getBoolean("weekly_digest_enabled"),
                 rs.getBoolean("monthly_report_enabled"),
+                rs.getBoolean("email_enabled"),
+                rs.getString("email_address"),
+                rs.getString("digest_frequency"),
+                rs.getBoolean("budget_alert_email_enabled"),
+                rs.getBoolean("recurring_reminder_email_enabled"),
+                rs.getBoolean("report_email_enabled"),
+                rs.getBoolean("delivery_failure_alerts_enabled"),
                 rs.getString("timezone"),
                 rs.getObject("quiet_hours_start", LocalTime.class),
                 rs.getObject("quiet_hours_end", LocalTime.class),

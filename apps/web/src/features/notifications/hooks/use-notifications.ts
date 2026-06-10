@@ -5,20 +5,28 @@ import {
   createScheduledReport,
   deleteScheduledReport,
   dismissNotification,
+  getDeliveryHistory,
+  getDeliveryRetries,
+  getEmailPreview,
   getNotificationDashboard,
   getNotificationPreferences,
   getNotificationSummary,
   getNotifications,
   getReportDeliveryLogs,
   getScheduledReports,
+  getSystemStatus,
+  getWorkerJobs,
   markAllNotificationsRead,
   markNotificationRead,
+  retryDelivery,
   updateNotificationPreferences,
   updateScheduledReport,
 } from "@/features/notifications/services/notifications-api";
 import type {
+  DeliveryHistory,
   Notification,
   NotificationPreferencePayload,
+  NotificationPreferences,
   NotificationSummary,
   ScheduledReportPayload,
 } from "@/features/finance/types";
@@ -29,6 +37,10 @@ export const notificationDashboardQueryKey = ["notifications", "dashboard"] as c
 export const notificationPreferencesQueryKey = ["notifications", "preferences"] as const;
 export const scheduledReportsQueryKey = ["notifications", "scheduled-reports"] as const;
 export const reportDeliveryLogsQueryKey = ["notifications", "delivery-logs"] as const;
+export const deliveryHistoryQueryKey = ["notifications", "deliveries"] as const;
+export const emailPreviewQueryKey = ["notifications", "email-preview"] as const;
+export const systemStatusQueryKey = ["notifications", "system-status"] as const;
+export const workerJobsQueryKey = ["notifications", "worker-jobs"] as const;
 
 export function useNotificationSummary() {
   return useQuery({
@@ -62,7 +74,20 @@ export function useUpdateNotificationPreferences() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: NotificationPreferencePayload) => updateNotificationPreferences(payload),
-    onSuccess() {
+    async onMutate(payload) {
+      await queryClient.cancelQueries({ queryKey: notificationPreferencesQueryKey });
+      const previousPreferences = queryClient.getQueryData<NotificationPreferences>(notificationPreferencesQueryKey);
+      if (previousPreferences) {
+        queryClient.setQueryData(notificationPreferencesQueryKey, { ...previousPreferences, ...payload });
+      }
+      return { previousPreferences };
+    },
+    onError(_error, _payload, context) {
+      if (context?.previousPreferences) {
+        queryClient.setQueryData(notificationPreferencesQueryKey, context.previousPreferences);
+      }
+    },
+    onSettled() {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
@@ -190,5 +215,67 @@ export function useReportDeliveryLogs() {
   return useQuery({
     queryKey: reportDeliveryLogsQueryKey,
     queryFn: getReportDeliveryLogs,
+  });
+}
+
+export function useDeliveryHistory() {
+  return useQuery({
+    queryKey: deliveryHistoryQueryKey,
+    queryFn: getDeliveryHistory,
+  });
+}
+
+export function useRetryDelivery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: retryDelivery,
+    async onMutate(deliveryId) {
+      await queryClient.cancelQueries({ queryKey: deliveryHistoryQueryKey });
+      const previous = queryClient.getQueryData<DeliveryHistory[]>(deliveryHistoryQueryKey);
+      if (previous) {
+        queryClient.setQueryData(
+          deliveryHistoryQueryKey,
+          previous.map((item) =>
+            item.id === deliveryId ? { ...item, status: "RETRY_SCHEDULED", nextRetryAt: new Date().toISOString() } : item
+          )
+        );
+      }
+      return { previous };
+    },
+    onError(_error, _deliveryId, context) {
+      queryClient.setQueryData(deliveryHistoryQueryKey, context?.previous);
+    },
+    onSettled() {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+export function useDeliveryRetries(deliveryId?: string | null) {
+  return useQuery({
+    queryKey: [...deliveryHistoryQueryKey, deliveryId, "retries"],
+    queryFn: () => getDeliveryRetries(deliveryId as string),
+    enabled: Boolean(deliveryId),
+  });
+}
+
+export function useEmailPreview(templateType: string) {
+  return useQuery({
+    queryKey: [...emailPreviewQueryKey, templateType],
+    queryFn: () => getEmailPreview(templateType),
+  });
+}
+
+export function useSystemStatus() {
+  return useQuery({
+    queryKey: systemStatusQueryKey,
+    queryFn: getSystemStatus,
+  });
+}
+
+export function useWorkerJobs() {
+  return useQuery({
+    queryKey: workerJobsQueryKey,
+    queryFn: getWorkerJobs,
   });
 }

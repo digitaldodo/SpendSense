@@ -11,6 +11,13 @@ public record NotificationPreferenceRequest(
         Boolean spendingIncreaseEnabled,
         Boolean weeklyDigestEnabled,
         Boolean monthlyReportEnabled,
+        Boolean emailEnabled,
+        String emailAddress,
+        String digestFrequency,
+        Boolean budgetAlertEmailEnabled,
+        Boolean recurringReminderEmailEnabled,
+        Boolean reportEmailEnabled,
+        Boolean deliveryFailureAlertsEnabled,
         String timezone,
         LocalTime quietHoursStart,
         LocalTime quietHoursEnd

@@ -8,9 +8,14 @@ import type {
   NotificationPreferencePayload,
   NotificationPreferences,
   NotificationSummary,
+  DeliveryHistory,
+  DeliveryRetry,
+  EmailPreview,
   ReportDeliveryLog,
   ScheduledReport,
   ScheduledReportPayload,
+  SystemStatus,
+  WorkerJobLog,
 } from "@/features/finance/types";
 
 export async function getNotificationSummary() {
@@ -98,5 +103,41 @@ export async function getReportDeliveryLogs() {
   const response = await authenticatedApiClient<ApiResponse<ReportDeliveryLog[]>>(
     "/api/v1/notifications/scheduled-reports/delivery-logs"
   );
+  return response.data;
+}
+
+export async function getDeliveryHistory() {
+  const response = await authenticatedApiClient<ApiResponse<DeliveryHistory[]>>("/api/v1/notifications/deliveries");
+  return response.data;
+}
+
+export async function retryDelivery(deliveryId: string) {
+  const response = await authenticatedApiClient<ApiResponse<DeliveryHistory>>(`/api/v1/notifications/deliveries/${deliveryId}/retry`, {
+    method: "POST",
+  });
+  return response.data;
+}
+
+export async function getDeliveryRetries(deliveryId: string) {
+  const response = await authenticatedApiClient<ApiResponse<DeliveryRetry[]>>(
+    `/api/v1/notifications/deliveries/${deliveryId}/retries`
+  );
+  return response.data;
+}
+
+export async function getEmailPreview(templateType: string) {
+  const response = await authenticatedApiClient<ApiResponse<EmailPreview>>(
+    `/api/v1/notifications/email-preview?templateType=${encodeURIComponent(templateType)}`
+  );
+  return response.data;
+}
+
+export async function getSystemStatus() {
+  const response = await authenticatedApiClient<ApiResponse<SystemStatus>>("/api/v1/notifications/system-status");
+  return response.data;
+}
+
+export async function getWorkerJobs() {
+  const response = await authenticatedApiClient<ApiResponse<WorkerJobLog[]>>("/api/v1/notifications/worker-jobs");
   return response.data;
 }
