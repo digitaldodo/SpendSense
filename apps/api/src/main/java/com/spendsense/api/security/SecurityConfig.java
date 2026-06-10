@@ -21,17 +21,20 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final MaintenanceModeFilter maintenanceModeFilter;
     private final OnboardingCompletionFilter onboardingCompletionFilter;
     private final AuthenticationEntryPoint authenticationEntryPoint;
     private final AccessDeniedHandler accessDeniedHandler;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            MaintenanceModeFilter maintenanceModeFilter,
             OnboardingCompletionFilter onboardingCompletionFilter,
             AuthenticationEntryPoint authenticationEntryPoint,
             AccessDeniedHandler accessDeniedHandler
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.maintenanceModeFilter = maintenanceModeFilter;
         this.onboardingCompletionFilter = onboardingCompletionFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
@@ -58,6 +61,7 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
+                .addFilterBefore(maintenanceModeFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(onboardingCompletionFilter, JwtAuthenticationFilter.class)
                 .build();

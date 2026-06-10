@@ -1,15 +1,14 @@
 package com.spendsense.api.config;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("production")
 public class DeploymentStartupValidator implements ApplicationRunner {
     private final SpendSenseProperties properties;
     private final Environment environment;
@@ -21,6 +20,10 @@ public class DeploymentStartupValidator implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (!isManagedDeploymentProfile()) {
+            return;
+        }
+
         List<String> failures = new ArrayList<>();
         requireSecureUrl("PUBLIC_BASE_URL", properties.api().publicBaseUrl(), failures);
         requireSecureUrl("SUPABASE_JWT_ISSUER", properties.security().supabase().issuer(), failures);
@@ -28,10 +31,16 @@ public class DeploymentStartupValidator implements ApplicationRunner {
         validateSupabaseSecrets(failures);
         validateCors(failures);
         validateDeliverySecrets(failures);
+        validateOperationalSafety(failures);
 
         if (!failures.isEmpty()) {
-            throw new IllegalStateException("Production deployment validation failed: " + String.join("; ", failures));
+            throw new IllegalStateException("Managed deployment validation failed: " + String.join("; ", failures));
         }
+    }
+
+    private boolean isManagedDeploymentProfile() {
+        return Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(profile -> profile.equals("production") || profile.equals("staging"));
     }
 
     private void validateDatabase(List<String> failures) {
@@ -84,6 +93,27 @@ public class DeploymentStartupValidator implements ApplicationRunner {
         if (Boolean.TRUE.equals(resend.enabled())) {
             requireSecret("RESEND_API_KEY", resend.apiKey(), failures);
         }
+    }
+
+    private void validateOperationalSafety(List<String> failures) {
+        SpendSenseProperties.Operations operations = properties.operations();
+        if (operations == null || operations.environment() == null || operations.environment().isBlank()) {
+            failures.add("SPENDSENSE_ENVIRONMENT must be set for managed deployments");
+            return;
+        }
+        if (!operations.environment().equals("staging") && !operations.environment().equals("production")) {
+            failures.add("SPENDSENSE_ENVIRONMENT must be staging or production for managed deployments");
+        }
+        if (isProductionProfile() && Boolean.TRUE.equals(operations.maintenanceMode())) {
+            failures.add("Production must not start in maintenance mode unless the flag is enabled after deployment");
+        }
+        if (isProductionProfile() && (operations.releaseCommit() == null || operations.releaseCommit().equals("local"))) {
+            failures.add("SPENDSENSE_RELEASE_COMMIT must identify the deployed commit");
+        }
+    }
+
+    private boolean isProductionProfile() {
+        return Arrays.asList(environment.getActiveProfiles()).contains("production");
     }
 
     private void requireSecureUrl(String name, String value, List<String> failures) {

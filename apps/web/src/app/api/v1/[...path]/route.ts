@@ -40,6 +40,32 @@ async function fixtureFor(route: string, request: NextRequest) {
   if (route === "/profile/current") {
     return profileFixture;
   }
+  if (route === "/health/live" || route === "/health/heartbeat" || route === "/health/ready") {
+    return {
+      status: "UP",
+      service: "spendsense-api",
+      environment: "development",
+      version: "ci",
+      commit: "ci",
+      maintenanceMode: false,
+      degradedMode: false,
+      checkedAt: new Date().toISOString(),
+      checks: { application: "UP", database: "UP", cors: "UP" },
+    };
+  }
+  if (route === "/health/version") {
+    return {
+      service: "spendsense-api",
+      environment: "development",
+      version: "ci",
+      commit: "ci",
+      maintenanceMode: false,
+      degradedMode: false,
+      featureFlags: "{}",
+      alertEscalationEmail: "",
+      reportedAt: new Date().toISOString(),
+    };
+  }
   if (route === "/transactions/dashboard-summary") {
     return dashboardFixture;
   }

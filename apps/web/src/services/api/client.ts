@@ -22,6 +22,13 @@ function normalizeErrorPayload(payload: unknown, status: number): ApiErrorPayloa
     return payload as ApiErrorPayload;
   }
 
+  if (status === 503) {
+    return {
+      code: "SERVICE_UNAVAILABLE",
+      message: "SpendSense is temporarily unavailable while services recover. Please try again shortly.",
+    };
+  }
+
   return {
     code: `HTTP_${status}`,
     message: "The request could not be completed. Please try again.",
@@ -30,6 +37,8 @@ function normalizeErrorPayload(payload: unknown, status: number): ApiErrorPayloa
 
 export async function apiClient<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), 15_000);
 
   if (options.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -38,13 +47,26 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
     headers.set("X-Correlation-Id", createCorrelationId());
   }
 
-  const response = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  try {
+    const response = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: options.signal ?? controller.signal,
+    });
 
-  return parseResponse<T>(response);
+    return parseResponse<T>(response);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError(408, {
+        code: "REQUEST_TIMEOUT",
+        message: "The service took too long to respond. Please try again.",
+      });
+    }
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
 }
 
 function createCorrelationId() {

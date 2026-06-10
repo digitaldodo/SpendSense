@@ -1,6 +1,7 @@
 package com.spendsense.api.exception;
 
 import com.spendsense.api.common.ApiErrorResponse;
+import io.sentry.Sentry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
@@ -68,6 +69,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception, HttpServletRequest request) {
         log.error("Unhandled API exception", exception);
+        Sentry.captureException(exception);
         return error(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "INTERNAL_ERROR",

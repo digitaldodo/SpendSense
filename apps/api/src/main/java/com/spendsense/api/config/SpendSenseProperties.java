@@ -7,7 +7,15 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "spendsense")
-public record SpendSenseProperties(Api api, Security security, Cors cors, Demo demo, Delivery delivery, Performance performance) {
+public record SpendSenseProperties(
+        Api api,
+        Security security,
+        Cors cors,
+        Demo demo,
+        Delivery delivery,
+        Performance performance,
+        Operations operations
+) {
     public record Api(@NotBlank String version, @NotBlank String publicBaseUrl) {
     }
 
@@ -53,5 +61,16 @@ public record SpendSenseProperties(Api api, Security security, Cors cors, Demo d
     }
 
     public record Performance(Long slowRequestThresholdMs) {
+    }
+
+    public record Operations(
+            @NotBlank String environment,
+            String releaseVersion,
+            String releaseCommit,
+            Boolean maintenanceMode,
+            Boolean degradedMode,
+            String featureFlags,
+            String alertEscalationEmail
+    ) {
     }
 }

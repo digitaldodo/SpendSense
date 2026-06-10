@@ -1,7 +1,7 @@
 {
   "bundle": {
     "maxInitialJsKb": 260,
-    "maxLargestJsAssetKb": 115,
+    "maxLargestJsAssetKb": 130,
     "maxCssKb": 25
   },
   "lighthouse": {

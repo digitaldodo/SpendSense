@@ -1,23 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { OperationalBanner } from "@/components/system/operational-banner";
 import { AppProviders } from "@/providers/app-providers";
 import "./globals.css";
 
 const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://spendsense.app");
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-  preload: true,
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-  preload: false,
-});
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -84,10 +70,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
+        <OperationalBanner />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

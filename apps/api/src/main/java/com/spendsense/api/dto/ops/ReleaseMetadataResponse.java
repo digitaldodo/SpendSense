@@ -1,17 +1,16 @@
 package com.spendsense.api.dto.ops;
 
 import java.time.Instant;
-import java.util.Map;
 
-public record DeploymentHealthResponse(
-        String status,
+public record ReleaseMetadataResponse(
         String service,
         String environment,
         String version,
         String commit,
         boolean maintenanceMode,
         boolean degradedMode,
-        Instant checkedAt,
-        Map<String, String> checks
+        String featureFlags,
+        String alertEscalationEmail,
+        Instant reportedAt
 ) {
 }

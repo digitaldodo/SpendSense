@@ -81,6 +81,21 @@ spendsense:
       replay-window-seconds: ${SPENDSENSE_WEBHOOK_REPLAY_WINDOW_SECONDS:300}
   performance:
     slow-request-threshold-ms: ${SPENDSENSE_SLOW_REQUEST_THRESHOLD_MS:750}
+  operations:
+    environment: ${SPENDSENSE_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:local}}
+    release-version: ${SPENDSENSE_RELEASE_VERSION:${APP_VERSION:0.0.1-SNAPSHOT}}
+    release-commit: ${SPENDSENSE_RELEASE_COMMIT:${GIT_SHA:local}}
+    maintenance-mode: ${SPENDSENSE_MAINTENANCE_MODE:false}
+    degraded-mode: ${SPENDSENSE_DEGRADED_MODE:false}
+    feature-flags: ${SPENDSENSE_FEATURE_FLAGS:{}}
+    alert-escalation-email: ${SPENDSENSE_ALERT_ESCALATION_EMAIL:}
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SPENDSENSE_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:local}}
+  release: ${SPENDSENSE_RELEASE_VERSION:${APP_VERSION:0.0.1-SNAPSHOT}}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  send-default-pii: false
 
 management:
   endpoints:

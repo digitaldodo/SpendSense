@@ -7,13 +7,16 @@ $required = @(
   "NEXT_PUBLIC_API_BASE_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_RELEASE_COMMIT",
   "DATABASE_URL",
   "DATABASE_USERNAME",
   "DATABASE_PASSWORD",
   "PUBLIC_BASE_URL",
   "WEB_ORIGIN",
   "SUPABASE_JWT_ISSUER",
-  "SUPABASE_JWKS_URI"
+  "SUPABASE_JWKS_URI",
+  "SPENDSENSE_ENVIRONMENT",
+  "SPENDSENSE_RELEASE_COMMIT"
 )
 
 if (-not (Test-Path -LiteralPath $EnvFile)) {
@@ -28,7 +31,7 @@ Get-Content -LiteralPath $EnvFile | ForEach-Object {
 }
 
 $missing = $required | Where-Object {
-  -not $values.ContainsKey($_) -or [string]::IsNullOrWhiteSpace($values[$_]) -or $values[$_] -match "your-|localhost|local-password"
+  -not $values.ContainsKey($_) -or [string]::IsNullOrWhiteSpace($values[$_]) -or $values[$_] -match "your-|localhost|127\.0\.0\.1|local-password|managed-git-sha"
 }
 
 if ($missing.Count -gt 0) {

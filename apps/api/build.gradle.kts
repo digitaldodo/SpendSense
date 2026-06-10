@@ -28,6 +28,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.flywaydb:flyway-core")
 	implementation("org.flywaydb:flyway-database-postgresql")
+	implementation("io.sentry:sentry:8.43.1")
 	runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 	runtimeOnly("org.postgresql:postgresql")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")

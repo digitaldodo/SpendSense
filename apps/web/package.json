@@ -17,6 +17,7 @@
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@hookform/resolvers": "^5.4.0",
+    "@sentry/nextjs": "^10.57.0",
     "@spendsense/shared": "file:../../packages/shared",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.0",
@@ -36,12 +37,12 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@lhci/cli": "^0.15.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "lint-staged": "^16.4.0",

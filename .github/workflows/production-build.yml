@@ -30,19 +30,36 @@ jobs:
       - name: Build frontend
         env:
           NEXT_PUBLIC_APP_ENV: production
-          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://app.spendsense.example' }}
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://api.spendsense.example' }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-anon-key' }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
           NEXT_PUBLIC_APP_VERSION: ${{ github.sha }}
+          NEXT_PUBLIC_RELEASE_COMMIT: ${{ github.sha }}
+          NEXT_PUBLIC_MAINTENANCE_MODE: "0"
+          NEXT_PUBLIC_DEGRADED_MODE: "0"
+          NEXT_PUBLIC_FEATURE_FLAGS: "{}"
+          NEXT_PUBLIC_ANALYTICS_WRITE_KEY: ${{ secrets.NEXT_PUBLIC_ANALYTICS_WRITE_KEY }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_FRONTEND_PROJECT }}
         run: npm --prefix apps/web run build
       - run: npm run budget:bundle
       - name: Build backend
         working-directory: apps/api
+        env:
+          SPRING_PROFILES_ACTIVE: production
+          SPENDSENSE_ENVIRONMENT: production
+          SPENDSENSE_RELEASE_VERSION: ${{ github.sha }}
+          SPENDSENSE_RELEASE_COMMIT: ${{ github.sha }}
         run: |
           chmod +x gradlew
-          ./gradlew bootJar --no-daemon
+          ./gradlew build bootJar --no-daemon
+      - name: Prepare release tag metadata
+        run: |
+          echo "release=spendsense-${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
+          echo "commit=${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload frontend artifact
         uses: actions/upload-artifact@v4
         with:

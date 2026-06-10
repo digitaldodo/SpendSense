@@ -7,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
   --font-heading: var(--font-sans);
   --spacing-page-x: var(--spacing-page-x);
   --spacing-section-y: var(--spacing-section-y);
@@ -103,6 +103,10 @@
   --duration-fast: 120ms;
   --duration-base: 180ms;
   --duration-slow: 260ms;
+  --font-family-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-mono:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
   --sidebar: oklch(0.965 0.008 246);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);

@@ -1,0 +1,72 @@
+name: Staging deployment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: build, deploy, and verify staging
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - name: Build staging frontend
+        env:
+          NEXT_PUBLIC_APP_ENV: staging
+          NEXT_PUBLIC_SITE_URL: ${{ vars.STAGING_WEB_URL }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.STAGING_API_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.STAGING_FRONTEND_SENTRY_DSN }}
+          NEXT_PUBLIC_APP_VERSION: staging-${{ github.sha }}
+          NEXT_PUBLIC_RELEASE_COMMIT: ${{ github.sha }}
+          NEXT_PUBLIC_MAINTENANCE_MODE: "0"
+          NEXT_PUBLIC_DEGRADED_MODE: "0"
+          NEXT_PUBLIC_FEATURE_FLAGS: ${{ vars.STAGING_FEATURE_FLAGS || '{}' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_FRONTEND_PROJECT }}
+        run: npm --prefix apps/web run build
+      - name: Build staging backend
+        working-directory: apps/api
+        env:
+          SPRING_PROFILES_ACTIVE: staging
+          SPENDSENSE_ENVIRONMENT: staging
+          SPENDSENSE_RELEASE_VERSION: staging-${{ github.sha }}
+          SPENDSENSE_RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+      - name: Deploy frontend to Vercel staging
+        if: ${{ secrets.VERCEL_TOKEN != '' && vars.VERCEL_PROJECT_ID != '' && vars.VERCEL_ORG_ID != '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+        run: npx vercel deploy apps/web --target=preview --token "$VERCEL_TOKEN"
+      - name: Trigger backend staging deployment
+        if: ${{ secrets.BACKEND_STAGING_DEPLOY_HOOK != '' }}
+        run: curl -fsS -X POST "${{ secrets.BACKEND_STAGING_DEPLOY_HOOK }}"
+      - name: Verify staging health
+        if: ${{ vars.STAGING_WEB_URL != '' && vars.STAGING_API_URL != '' }}
+        shell: pwsh
+        run: ./scripts/deployment/smoke-test.ps1 -WebBaseUrl "${{ vars.STAGING_WEB_URL }}" -ApiBaseUrl "${{ vars.STAGING_API_URL }}"

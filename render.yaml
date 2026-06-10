@@ -1,5 +1,38 @@
 services:
   - type: web
+    name: spendsense-api-staging
+    env: docker
+    rootDir: .
+    dockerfilePath: apps/api/Dockerfile
+    healthCheckPath: /api/v1/health/ready
+    autoDeploy: false
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: staging
+      - key: SPENDSENSE_ENVIRONMENT
+        value: staging
+      - key: SERVER_PORT
+        value: 8080
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false
+      - key: SUPABASE_JWT_ISSUER
+        sync: false
+      - key: SUPABASE_JWKS_URI
+        sync: false
+      - key: SPENDSENSE_RELEASE_COMMIT
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+
+  - type: web
     name: spendsense-api
     env: docker
     rootDir: .
@@ -8,6 +41,8 @@ services:
     autoDeploy: false
     envVars:
       - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: SPENDSENSE_ENVIRONMENT
         value: production
       - key: SERVER_PORT
         value: 8080
@@ -24,4 +59,8 @@ services:
       - key: SUPABASE_JWT_ISSUER
         sync: false
       - key: SUPABASE_JWKS_URI
+        sync: false
+      - key: SPENDSENSE_RELEASE_COMMIT
+        sync: false
+      - key: SENTRY_DSN
         sync: false

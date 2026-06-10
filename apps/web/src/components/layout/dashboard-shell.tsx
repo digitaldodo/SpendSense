@@ -16,6 +16,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { env } from "@/config/env";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { NotificationToastHost } from "@/features/notifications/components/notification-toast-host";
 import { useNotificationSummary } from "@/features/notifications/hooks/use-notifications";
@@ -138,6 +139,13 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                   </p>
                 </div>
               </div>
+            </div>
+            <div className="mt-3 rounded-lg border border-border/70 bg-background/55 p-3 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium uppercase tracking-normal">{env.NEXT_PUBLIC_APP_ENV}</span>
+                <span className="font-mono">{env.NEXT_PUBLIC_APP_VERSION}</span>
+              </div>
+              <p className="mt-1 truncate font-mono">{env.NEXT_PUBLIC_RELEASE_COMMIT}</p>
             </div>
           </div>
         </aside>

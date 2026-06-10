@@ -33,26 +33,16 @@ export function logClientEvent(payload: ClientLogPayload) {
 }
 
 function captureSentryReadyError(error: unknown, context: Record<string, unknown>) {
-  const sentry = typeof window !== "undefined" ? window.Sentry : undefined;
-  if (!sentry?.captureException) {
+  if (!env.NEXT_PUBLIC_SENTRY_DSN) {
     return;
   }
-  sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
-    extra: context,
-    tags: {
-      app: "spendsense-web",
-      release: env.NEXT_PUBLIC_APP_VERSION,
-    },
+  void import("@sentry/nextjs").then((Sentry) => {
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+      extra: context,
+      tags: {
+        app: "spendsense-web",
+        release: env.NEXT_PUBLIC_APP_VERSION,
+      },
+    });
   });
-}
-
-declare global {
-  interface Window {
-    Sentry?: {
-      captureException?: (
-        error: Error,
-        context?: { extra?: Record<string, unknown>; tags?: Record<string, string> }
-      ) => void;
-    };
-  }
 }

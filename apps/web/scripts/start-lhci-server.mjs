@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
-import path from "node:path";
+import { createRequire } from "node:module";
 
 const webRoot = process.cwd();
-const nextBin = path.join(webRoot, "node_modules", "next", "dist", "bin", "next");
+const require = createRequire(import.meta.url);
+const nextBin = require.resolve("next/dist/bin/next");
 
 const server = spawn(process.execPath, [nextBin, "start", "-H", "127.0.0.1", "-p", "3000"], {
   cwd: webRoot,

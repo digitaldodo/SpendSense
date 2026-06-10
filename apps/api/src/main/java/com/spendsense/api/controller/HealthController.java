@@ -3,6 +3,7 @@ package com.spendsense.api.controller;
 import com.spendsense.api.common.ApiResponse;
 import com.spendsense.api.dto.engagement.SystemStatusResponse;
 import com.spendsense.api.dto.ops.DeploymentHealthResponse;
+import com.spendsense.api.dto.ops.ReleaseMetadataResponse;
 import com.spendsense.api.service.delivery.WorkerObservabilityService;
 import com.spendsense.api.service.ops.DeploymentHealthService;
 import java.util.Map;
@@ -48,6 +49,13 @@ public class HealthController {
         ));
     }
 
+    @GetMapping("/heartbeat")
+    ResponseEntity<ApiResponse<DeploymentHealthResponse>> heartbeat(
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return liveness(traceId);
+    }
+
     @GetMapping("/ready")
     ResponseEntity<ApiResponse<DeploymentHealthResponse>> readiness(
             @RequestAttribute(name = "traceId", required = false) String traceId
@@ -67,6 +75,17 @@ public class HealthController {
         return ResponseEntity.ok(ApiResponse.success(
                 workerObservabilityService.systemStatus(),
                 "SpendSense delivery metrics loaded.",
+                traceId
+        ));
+    }
+
+    @GetMapping("/version")
+    ResponseEntity<ApiResponse<ReleaseMetadataResponse>> version(
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                deploymentHealthService.releaseMetadata(),
+                "SpendSense API release metadata loaded.",
                 traceId
         ));
     }

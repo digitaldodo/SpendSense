@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   compress: true,
   output: "standalone",
   poweredByHeader: false,
@@ -53,4 +55,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const sentryUploadEnabled = Boolean(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT);
+
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  sourcemaps: {
+    disable: !sentryUploadEnabled,
+  },
+  telemetry: false,
+});
