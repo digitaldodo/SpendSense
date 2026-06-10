@@ -66,6 +66,7 @@ public class WorkerQueueService {
 
     @Transactional
     public List<WorkerQueueJob> claimDue(String queueName, int limit, String workerId) {
+        releaseExpiredLocks(queueName);
         List<WorkerQueueJob> jobs = jdbcTemplate.query("""
                 select * from worker_queues
                 where queue_name = ?
@@ -73,8 +74,8 @@ public class WorkerQueueService {
                   and scheduled_for <= current_timestamp
                   and (locked_until is null or locked_until < current_timestamp)
                 order by priority asc, scheduled_for asc, enqueued_at asc
-                for update skip locked
                 limit ?
+                for update skip locked
                 """, this::queueRow, queueName, limit);
         Instant lockedUntil = Instant.now(clock).plusSeconds(workerLockTtlSeconds());
         for (WorkerQueueJob job : jobs) {
@@ -114,7 +115,7 @@ public class WorkerQueueService {
 
     @Transactional
     public void retry(WorkerQueueJob job, String errorCode, String errorMessage) {
-        Instant scheduledFor = Instant.now(clock).plusSeconds(retryDelaySeconds() * Math.max(1, job.attemptCount()));
+        Instant scheduledFor = Instant.now(clock).plusSeconds(retryBackoffSeconds(job));
         jdbcTemplate.update("""
                 update worker_queues
                 set status = 'RETRY_SCHEDULED', locked_by = null, locked_until = null, scheduled_for = ?,
@@ -213,6 +214,29 @@ public class WorkerQueueService {
     private long retryDelaySeconds() {
         Integer value = properties.delivery().worker().retryDelaySeconds();
         return value == null ? 300 : Math.max(30, value);
+    }
+
+    private long retryBackoffSeconds(WorkerQueueJob job) {
+        long baseDelay = retryDelaySeconds();
+        int exponent = Math.min(Math.max(0, job.attemptCount() - 1), 5);
+        long jitter = Math.abs(job.id().getLeastSignificantBits() % Math.max(1, baseDelay / 3));
+        return Math.min(86_400, (baseDelay * (1L << exponent)) + jitter);
+    }
+
+    private void releaseExpiredLocks(String queueName) {
+        int released = jdbcTemplate.update("""
+                update worker_queues
+                set status = 'RETRY_SCHEDULED', locked_by = null, locked_until = null,
+                    scheduled_for = current_timestamp, last_error_code = 'WORKER_TIMEOUT',
+                    last_error_message = 'Worker lock expired before the job completed.', updated_at = current_timestamp
+                where queue_name = ?
+                  and status = 'RUNNING'
+                  and locked_until is not null
+                  and locked_until < current_timestamp
+                """, queueName);
+        if (released > 0) {
+            log.warn("worker_queue_expired_locks_released queue={} count={}", queueName, released);
+        }
     }
 
     private long workerLockTtlSeconds() {

@@ -55,6 +55,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class CsvImportService {
     private static final int PREVIEW_LIMIT = 10;
+    private static final long MAX_CSV_BYTES = 5L * 1024L * 1024L;
 
     private final UserProfileSyncService userProfileSyncService;
     private final CsvParserService csvParserService;
@@ -113,6 +114,7 @@ public class CsvImportService {
             CsvColumnMappingRequest requestedMapping
     ) {
         UserProfile profile = userProfileSyncService.syncAuthenticatedUser(principal);
+        validateUpload(file);
         ParsedCsv parsed = csvParserService.parse(file);
         SavedImportMapping savedMapping = savedImportMappingRepository
                 .findByUserProfileIdAndSourceAndFileSignature(profile.getId(), IngestionSource.CSV, parsed.signature())
@@ -187,6 +189,7 @@ public class CsvImportService {
             String idempotencyKey
     ) {
         UserProfile profile = userProfileSyncService.syncAuthenticatedUser(principal);
+        validateUpload(file);
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             var existing = importJobRepository.findByUserProfileIdAndIdempotencyKey(profile.getId(), idempotencyKey.trim());
             if (existing.isPresent()) {
@@ -508,6 +511,26 @@ public class CsvImportService {
                 || mapping.creditAmount() != null && !mapping.creditAmount().isBlank();
         if (!hasAmount && !hasSplitAmount) {
             throw new IllegalArgumentException("Map an amount column, or debit and credit amount columns.");
+        }
+    }
+
+    private void validateUpload(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Upload a non-empty CSV file.");
+        }
+        if (file.getSize() > MAX_CSV_BYTES) {
+            throw new IllegalArgumentException("CSV files must be 5 MB or smaller.");
+        }
+        String filename = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
+        String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase();
+        boolean allowedExtension = filename.endsWith(".csv") || filename.endsWith(".txt");
+        boolean allowedType = contentType.isBlank()
+                || contentType.equals("text/csv")
+                || contentType.equals("application/csv")
+                || contentType.equals("text/plain")
+                || contentType.equals("application/vnd.ms-excel");
+        if (!allowedExtension || !allowedType) {
+            throw new IllegalArgumentException("Only CSV uploads are supported.");
         }
     }
 

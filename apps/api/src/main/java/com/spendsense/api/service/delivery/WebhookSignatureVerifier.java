@@ -3,6 +3,7 @@ package com.spendsense.api.service.delivery;
 import com.spendsense.api.config.SpendSenseProperties;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +36,9 @@ public class WebhookSignatureVerifier {
             return false;
         }
         String timestamp = firstHeader(headers, "x-spendsense-timestamp", "webhook-timestamp", "svix-timestamp");
+        if (StringUtils.hasText(timestamp) && !freshTimestamp(timestamp)) {
+            return false;
+        }
         String signedPayload = StringUtils.hasText(timestamp) ? timestamp + "." + payload : payload;
         return secureEquals(hexHmac(signedPayload, secret), signature.replace("sha256=", ""));
     }
@@ -44,6 +48,9 @@ public class WebhookSignatureVerifier {
         String id = firstHeader(headers, "svix-id");
         String timestamp = firstHeader(headers, "svix-timestamp");
         if (!StringUtils.hasText(signatureHeader) || !StringUtils.hasText(id) || !StringUtils.hasText(timestamp)) {
+            return false;
+        }
+        if (!freshTimestamp(timestamp)) {
             return false;
         }
         byte[] key;
@@ -74,6 +81,17 @@ public class WebhookSignatureVerifier {
             case "PUSH", "PUSH_PROVIDER" -> webhooks.pushProviderSecret();
             default -> "";
         };
+    }
+
+    private boolean freshTimestamp(String timestamp) {
+        try {
+            long epochSeconds = Long.parseLong(timestamp.trim());
+            long age = Math.abs(Instant.now().getEpochSecond() - epochSeconds);
+            Integer window = properties.delivery().webhooks().replayWindowSeconds();
+            return age <= (window == null ? 300 : Math.max(30, window));
+        } catch (NumberFormatException exception) {
+            return false;
+        }
     }
 
     private String firstHeader(Map<String, String> headers, String... names) {

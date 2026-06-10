@@ -44,6 +44,13 @@ spendsense:
       audience: ${SUPABASE_JWT_AUDIENCE:authenticated}
       jwks-uri: ${SUPABASE_JWKS_URI:}
       jwt-secret: ${SUPABASE_JWT_SECRET:}
+    headers:
+      content-security-policy: ${SPENDSENSE_API_CSP:default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'}
+      permissions-policy: ${SPENDSENSE_PERMISSIONS_POLICY:camera=(), microphone=(), geolocation=(), payment=()}
+    rate-limit:
+      enabled: ${SPENDSENSE_RATE_LIMIT_ENABLED:true}
+      requests-per-minute: ${SPENDSENSE_RATE_LIMIT_REQUESTS_PER_MINUTE:120}
+      burst-capacity: ${SPENDSENSE_RATE_LIMIT_BURST_CAPACITY:120}
   cors:
     allowed-origins:
       - ${WEB_ORIGIN:http://localhost:3000}
@@ -71,6 +78,9 @@ spendsense:
       resend-secret: ${RESEND_WEBHOOK_SECRET:}
       smtp-fallback-secret: ${SMTP_FALLBACK_WEBHOOK_SECRET:}
       push-provider-secret: ${PUSH_PROVIDER_WEBHOOK_SECRET:}
+      replay-window-seconds: ${SPENDSENSE_WEBHOOK_REPLAY_WINDOW_SECONDS:300}
+  performance:
+    slow-request-threshold-ms: ${SPENDSENSE_SLOW_REQUEST_THRESHOLD_MS:750}
 
 management:
   endpoints:

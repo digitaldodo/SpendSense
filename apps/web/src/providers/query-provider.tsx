@@ -9,9 +9,15 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
+            gcTime: 10 * 60_000,
             refetchOnWindowFocus: false,
-            retry: 1,
-            staleTime: 30_000,
+            refetchOnReconnect: "always",
+            retry: (failureCount, error) => {
+              const status =
+                typeof error === "object" && error && "status" in error ? Number(error.status) : 0;
+              return status >= 500 && failureCount < 2;
+            },
+            staleTime: 60_000,
           },
           mutations: {
             retry: 0,

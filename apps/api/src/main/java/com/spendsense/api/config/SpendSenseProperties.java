@@ -7,11 +7,11 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "spendsense")
-public record SpendSenseProperties(Api api, Security security, Cors cors, Demo demo, Delivery delivery) {
+public record SpendSenseProperties(Api api, Security security, Cors cors, Demo demo, Delivery delivery, Performance performance) {
     public record Api(@NotBlank String version, @NotBlank String publicBaseUrl) {
     }
 
-    public record Security(Supabase supabase) {
+    public record Security(Supabase supabase, Headers headers, RateLimit rateLimit) {
     }
 
     public record Supabase(
@@ -43,6 +43,15 @@ public record SpendSenseProperties(Api api, Security security, Cors cors, Demo d
     public record Smtp(Boolean enabled, String fromEmail, String fromName) {
     }
 
-    public record Webhooks(Boolean requireSignature, String resendSecret, String smtpFallbackSecret, String pushProviderSecret) {
+    public record Webhooks(Boolean requireSignature, String resendSecret, String smtpFallbackSecret, String pushProviderSecret, Integer replayWindowSeconds) {
+    }
+
+    public record Headers(String contentSecurityPolicy, String permissionsPolicy) {
+    }
+
+    public record RateLimit(Boolean enabled, Integer requestsPerMinute, Integer burstCapacity) {
+    }
+
+    public record Performance(Long slowRequestThresholdMs) {
     }
 }

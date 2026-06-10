@@ -46,6 +46,8 @@ export function useNotificationSummary() {
   return useQuery({
     queryKey: notificationSummaryQueryKey,
     queryFn: getNotificationSummary,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
   });
 }
 
@@ -76,9 +78,14 @@ export function useUpdateNotificationPreferences() {
     mutationFn: (payload: NotificationPreferencePayload) => updateNotificationPreferences(payload),
     async onMutate(payload) {
       await queryClient.cancelQueries({ queryKey: notificationPreferencesQueryKey });
-      const previousPreferences = queryClient.getQueryData<NotificationPreferences>(notificationPreferencesQueryKey);
+      const previousPreferences = queryClient.getQueryData<NotificationPreferences>(
+        notificationPreferencesQueryKey
+      );
       if (previousPreferences) {
-        queryClient.setQueryData(notificationPreferencesQueryKey, { ...previousPreferences, ...payload });
+        queryClient.setQueryData(notificationPreferencesQueryKey, {
+          ...previousPreferences,
+          ...payload,
+        });
       }
       return { previousPreferences };
     },
@@ -99,9 +106,16 @@ export function useMarkNotificationRead() {
     mutationFn: markNotificationRead,
     async onMutate(notificationId) {
       await queryClient.cancelQueries({ queryKey: ["notifications"] });
-      const previousList = queryClient.getQueriesData<Notification[]>({ queryKey: notificationsQueryKey });
-      const previousSummary = queryClient.getQueryData<NotificationSummary>(notificationSummaryQueryKey);
-      const mark = (item: Notification) => (item.id === notificationId ? { ...item, read: true, readAt: new Date().toISOString() } : item);
+      const previousList = queryClient.getQueriesData<Notification[]>({
+        queryKey: notificationsQueryKey,
+      });
+      const previousSummary = queryClient.getQueryData<NotificationSummary>(
+        notificationSummaryQueryKey
+      );
+      const mark = (item: Notification) =>
+        item.id === notificationId
+          ? { ...item, read: true, readAt: new Date().toISOString() }
+          : item;
       previousList.forEach(([key, value]) => {
         if (value) {
           queryClient.setQueryData(key, value.map(mark));
@@ -133,8 +147,12 @@ export function useMarkAllNotificationsRead() {
     mutationFn: markAllNotificationsRead,
     async onMutate() {
       await queryClient.cancelQueries({ queryKey: ["notifications"] });
-      const previousList = queryClient.getQueriesData<Notification[]>({ queryKey: notificationsQueryKey });
-      const previousSummary = queryClient.getQueryData<NotificationSummary>(notificationSummaryQueryKey);
+      const previousList = queryClient.getQueriesData<Notification[]>({
+        queryKey: notificationsQueryKey,
+      });
+      const previousSummary = queryClient.getQueryData<NotificationSummary>(
+        notificationSummaryQueryKey
+      );
       const now = new Date().toISOString();
       previousList.forEach(([key, value]) => {
         if (value) {
@@ -148,8 +166,16 @@ export function useMarkAllNotificationsRead() {
         queryClient.setQueryData(notificationSummaryQueryKey, {
           ...previousSummary,
           unreadCount: 0,
-          latest: previousSummary.latest.map((item) => ({ ...item, read: true, readAt: item.readAt ?? now })),
-          timeline: previousSummary.timeline.map((item) => ({ ...item, read: true, readAt: item.readAt ?? now })),
+          latest: previousSummary.latest.map((item) => ({
+            ...item,
+            read: true,
+            readAt: item.readAt ?? now,
+          })),
+          timeline: previousSummary.timeline.map((item) => ({
+            ...item,
+            read: true,
+            readAt: item.readAt ?? now,
+          })),
         });
       }
       return { previousList, previousSummary };
@@ -194,7 +220,8 @@ export function useCreateScheduledReport() {
 export function useUpdateScheduledReport(scheduleId?: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: ScheduledReportPayload) => updateScheduledReport(scheduleId as string, payload),
+    mutationFn: (payload: ScheduledReportPayload) =>
+      updateScheduledReport(scheduleId as string, payload),
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
@@ -236,7 +263,9 @@ export function useRetryDelivery() {
         queryClient.setQueryData(
           deliveryHistoryQueryKey,
           previous.map((item) =>
-            item.id === deliveryId ? { ...item, status: "RETRY_SCHEDULED", nextRetryAt: new Date().toISOString() } : item
+            item.id === deliveryId
+              ? { ...item, status: "RETRY_SCHEDULED", nextRetryAt: new Date().toISOString() }
+              : item
           )
         );
       }
@@ -270,6 +299,8 @@ export function useSystemStatus() {
   return useQuery({
     queryKey: systemStatusQueryKey,
     queryFn: getSystemStatus,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
   });
 }
 

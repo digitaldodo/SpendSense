@@ -34,6 +34,9 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
   if (options.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+  if (!headers.has("X-Correlation-Id")) {
+    headers.set("X-Correlation-Id", createCorrelationId());
+  }
 
   const response = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}${path}`, {
     ...options,
@@ -42,4 +45,11 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
   });
 
   return parseResponse<T>(response);
+}
+
+function createCorrelationId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

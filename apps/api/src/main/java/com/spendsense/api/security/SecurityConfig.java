@@ -68,8 +68,8 @@ public class SecurityConfig {
         List<String> allowedOrigins = properties.cors().allowedOrigins();
         configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-        configuration.setExposedHeaders(List.of("X-Trace-Id"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-Trace-Id", "X-Correlation-Id", "Idempotency-Key"));
+        configuration.setExposedHeaders(List.of("X-Trace-Id", "X-Correlation-Id", "X-RateLimit-Limit", "X-RateLimit-Remaining"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

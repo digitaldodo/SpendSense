@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addGoalContribution,
   bulkUpdateTransactions,
@@ -55,6 +55,7 @@ export function useDashboardFinanceSummary() {
   return useQuery({
     queryKey: financeSummaryQueryKey,
     queryFn: getDashboardFinanceSummary,
+    staleTime: 2 * 60_000,
   });
 }
 
@@ -62,6 +63,7 @@ export function useAccounts() {
   return useQuery({
     queryKey: accountsQueryKey,
     queryFn: getAccounts,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -69,6 +71,7 @@ export function useCategories() {
   return useQuery({
     queryKey: categoriesQueryKey,
     queryFn: getCategories,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -121,6 +124,7 @@ export function useTransactions(filters: TransactionFilters) {
   return useQuery({
     queryKey: ["finance", "transactions", filters],
     queryFn: () => getTransactions(filters),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -135,7 +139,8 @@ export function useTransactionDetail(transactionId?: string | null) {
 export function useUpdateTransaction(transactionId?: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: TransactionUpdatePayload) => updateTransaction(transactionId as string, payload),
+    mutationFn: (payload: TransactionUpdatePayload) =>
+      updateTransaction(transactionId as string, payload),
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: ["finance"] });
     },
@@ -215,7 +220,8 @@ export function useDeleteSavingsGoal() {
 export function useAddGoalContribution(goalId?: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: GoalContributionPayload) => addGoalContribution(goalId as string, payload),
+    mutationFn: (payload: GoalContributionPayload) =>
+      addGoalContribution(goalId as string, payload),
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: ["finance"] });
     },
@@ -265,7 +271,8 @@ export function useMergeAccount(accountId?: string | null) {
 export function useCorrectAccountBalance(accountId?: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: BalanceCorrectionPayload) => correctAccountBalance(accountId as string, payload),
+    mutationFn: (payload: BalanceCorrectionPayload) =>
+      correctAccountBalance(accountId as string, payload),
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: ["finance"] });
     },

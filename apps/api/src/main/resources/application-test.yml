@@ -17,6 +17,8 @@ spendsense:
       audience: authenticated
       jwks-uri:
       jwt-secret: test-secret-at-least-thirty-two-characters
+    rate-limit:
+      enabled: false
   cors:
     allowed-origins:
       - http://localhost:3000

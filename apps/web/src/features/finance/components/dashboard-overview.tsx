@@ -74,7 +74,10 @@ import type {
   TransactionDirection,
   TransactionStatus,
 } from "@/features/finance/types";
-import { useNotificationPreferences, useSystemStatus } from "@/features/notifications/hooks/use-notifications";
+import {
+  useNotificationPreferences,
+  useSystemStatus,
+} from "@/features/notifications/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 
 const pageSize = 12;
@@ -116,7 +119,9 @@ export function DashboardOverview() {
 
         <Card className="rounded-lg border-border shadow-raised">
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Recent import activity</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Recent import activity
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
             {summary.recentImports.length === 0 ? (
@@ -161,7 +166,11 @@ export function DashboardOverview() {
         <FinancialCard
           title="Net cashflow"
           value={formatMoney(summary.netCashflow)}
-          detail={summary.netCashflow >= 0 ? "Income is ahead this month." : "Expenses are ahead this month."}
+          detail={
+            summary.netCashflow >= 0
+              ? "Income is ahead this month."
+              : "Expenses are ahead this month."
+          }
           icon={TrendingUp}
         />
       </section>
@@ -279,7 +288,9 @@ function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSu
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
             <CardTitle className="text-base">Upcoming subscriptions</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">Detected recurring payments due soon.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Detected recurring payments due soon.
+            </p>
           </div>
           <Repeat2 className="size-5 text-primary" aria-hidden />
         </CardHeader>
@@ -288,13 +299,23 @@ function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSu
             <WidgetLine label="Recurring payments" value="Clear" />
           ) : (
             notifications.upcomingSubscriptions.slice(0, 3).map((item) => (
-              <Link key={item.id} className="rounded-lg border border-border/70 bg-background/60 px-3 py-2 transition-colors hover:bg-muted/45" href="/notifications?tab=recurring">
+              <Link
+                key={item.id}
+                className="rounded-lg border border-border/70 bg-background/60 px-3 py-2 transition-colors hover:bg-muted/45"
+                href="/notifications?tab=recurring"
+              >
                 <p className="truncate text-sm font-medium">{item.title}</p>
-                <p className="mt-1 max-h-9 overflow-hidden text-xs text-muted-foreground">{item.body}</p>
+                <p className="mt-1 max-h-9 overflow-hidden text-xs text-muted-foreground">
+                  {item.body}
+                </p>
               </Link>
             ))
           )}
-          <Button className="mt-1 w-full" variant="outline" render={<Link href="/notifications?tab=recurring" />}>
+          <Button
+            className="mt-1 w-full"
+            variant="outline"
+            render={<Link href="/notifications?tab=recurring" />}
+          >
             <Repeat2 className="size-4" aria-hidden />
             Review recurring payments
           </Button>
@@ -305,7 +326,9 @@ function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSu
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
             <CardTitle className="text-base">Budget warnings</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">Gentle threshold reminders from active budgets.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Gentle threshold reminders from active budgets.
+            </p>
           </div>
           <Bell className="size-5 text-primary" aria-hidden />
         </CardHeader>
@@ -314,7 +337,10 @@ function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSu
             <WidgetLine label="Budget thresholds" value="Steady" />
           ) : (
             notifications.budgetWarnings.slice(0, 3).map((item) => (
-              <div key={item.id} className="rounded-lg border border-border/70 bg-background/60 px-3 py-2">
+              <div
+                key={item.id}
+                className="rounded-lg border border-border/70 bg-background/60 px-3 py-2"
+              >
                 <p className="truncate text-sm font-medium">{item.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{item.body}</p>
               </div>
@@ -331,7 +357,9 @@ function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSu
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
             <CardTitle className="text-base">Scheduled reports</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">Exports queued for weekly or monthly cadence.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Exports queued for weekly or monthly cadence.
+            </p>
           </div>
           <CalendarClock className="size-5 text-primary" aria-hidden />
         </CardHeader>
@@ -339,21 +367,32 @@ function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSu
           {notifications.scheduledReports.length === 0 ? (
             <WidgetLine label="Report schedule" value="Not set" />
           ) : (
-            notifications.scheduledReports.slice(0, 3).map((schedule) => (
-              <WidgetLine
-                key={schedule.id}
-                label={`${schedule.cadence.toLowerCase()} ${schedule.format}`}
-                value={new Date(schedule.nextRunAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-              />
-            ))
+            notifications.scheduledReports
+              .slice(0, 3)
+              .map((schedule) => (
+                <WidgetLine
+                  key={schedule.id}
+                  label={`${schedule.cadence.toLowerCase()} ${schedule.format}`}
+                  value={new Date(schedule.nextRunAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                />
+              ))
           )}
           {notifications.savingsNudges[0] ? (
             <div className="rounded-lg border border-border/70 bg-background/60 px-3 py-2">
               <p className="truncate text-sm font-medium">{notifications.savingsNudges[0].title}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{notifications.savingsNudges[0].body}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {notifications.savingsNudges[0].body}
+              </p>
             </div>
           ) : null}
-          <Button className="mt-1 w-full" variant="outline" render={<Link href="/notifications?tab=reports" />}>
+          <Button
+            className="mt-1 w-full"
+            variant="outline"
+            render={<Link href="/notifications?tab=reports" />}
+          >
             <CalendarClock className="size-4" aria-hidden />
             Manage exports
           </Button>
@@ -364,16 +403,28 @@ function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSu
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
             <CardTitle className="text-base">Delivery status</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">Reports, digests, and retry health.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Reports, digests, and retry health.
+            </p>
           </div>
           <Mail className="size-5 text-primary" aria-hidden />
         </CardHeader>
         <CardContent className="grid gap-2">
-          <WidgetLine label="Report delivery" value={notifications.scheduledReports.length > 0 ? "Scheduled" : "Not set"} />
-          <WidgetLine label="Digest" value={preferences?.digestFrequency?.toLowerCase() ?? "loading"} />
+          <WidgetLine
+            label="Report delivery"
+            value={notifications.scheduledReports.length > 0 ? "Scheduled" : "Not set"}
+          />
+          <WidgetLine
+            label="Digest"
+            value={preferences?.digestFrequency?.toLowerCase() ?? "loading"}
+          />
           <WidgetLine label="Email channel" value={preferences?.emailEnabled ? "On" : "Off"} />
           <WidgetLine label="Pending retries" value={`${systemStatus?.pendingRetries ?? 0}`} />
-          <Button className="mt-1 w-full" variant="outline" render={<Link href="/notifications?tab=delivery" />}>
+          <Button
+            className="mt-1 w-full"
+            variant="outline"
+            render={<Link href="/notifications?tab=delivery" />}
+          >
             <Mail className="size-4" aria-hidden />
             Delivery history
           </Button>
@@ -460,7 +511,9 @@ function TransactionExplorer() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold">Transactions</h2>
-          <p className="text-sm text-muted-foreground">Filter, search, edit categories, and prepare bulk cleanup.</p>
+          <p className="text-sm text-muted-foreground">
+            Filter, search, edit categories, and prepare bulk cleanup.
+          </p>
         </div>
         <Button
           variant="ghost"
@@ -499,7 +552,10 @@ function TransactionExplorer() {
             </option>
           ))}
         </FilterSelect>
-        <FilterSelect value={categoryId} onChange={(value) => resetPage(() => setCategoryId(value))}>
+        <FilterSelect
+          value={categoryId}
+          onChange={(value) => resetPage(() => setCategoryId(value))}
+        >
           <option value="">All categories</option>
           {(categoriesQuery.data ?? []).map((category) => (
             <option key={category.id} value={category.id}>
@@ -507,7 +563,10 @@ function TransactionExplorer() {
             </option>
           ))}
         </FilterSelect>
-        <FilterSelect value={direction} onChange={(value) => resetPage(() => setDirection(value as TransactionDirection | ""))}>
+        <FilterSelect
+          value={direction}
+          onChange={(value) => resetPage(() => setDirection(value as TransactionDirection | ""))}
+        >
           <option value="">Money in/out</option>
           <option value="DEBIT">Debits</option>
           <option value="CREDIT">Credits</option>
@@ -518,9 +577,22 @@ function TransactionExplorer() {
           <option value="-amount">Highest amount</option>
           <option value="merchant">Merchant A-Z</option>
         </FilterSelect>
-        <Input className="h-10" type="date" value={from} onChange={(event) => resetPage(() => setFrom(event.target.value))} />
-        <Input className="h-10" type="date" value={to} onChange={(event) => resetPage(() => setTo(event.target.value))} />
-        <FilterSelect value={status} onChange={(value) => resetPage(() => setStatus(value as TransactionStatus | ""))}>
+        <Input
+          className="h-10"
+          type="date"
+          value={from}
+          onChange={(event) => resetPage(() => setFrom(event.target.value))}
+        />
+        <Input
+          className="h-10"
+          type="date"
+          value={to}
+          onChange={(event) => resetPage(() => setTo(event.target.value))}
+        />
+        <FilterSelect
+          value={status}
+          onChange={(value) => resetPage(() => setStatus(value as TransactionStatus | ""))}
+        >
           <option value="">All statuses</option>
           <option value="POSTED">Posted</option>
           <option value="PENDING">Pending</option>
@@ -538,13 +610,18 @@ function TransactionExplorer() {
             </option>
           ))}
         </FilterSelect>
-        <FilterSelect value={bulkStatus} onChange={(value) => setBulkStatus(value as TransactionStatus | "")}>
+        <FilterSelect
+          value={bulkStatus}
+          onChange={(value) => setBulkStatus(value as TransactionStatus | "")}
+        >
           <option value="">Bulk status</option>
           <option value="POSTED">Posted</option>
           <option value="EXCLUDED">Excluded</option>
         </FilterSelect>
         <Button
-          disabled={selectedIds.length === 0 || bulkUpdate.isPending || (!bulkCategoryId && !bulkStatus)}
+          disabled={
+            selectedIds.length === 0 || bulkUpdate.isPending || (!bulkCategoryId && !bulkStatus)
+          }
           onClick={() =>
             bulkUpdate.mutate(
               {
@@ -617,8 +694,12 @@ function TransactionExplorer() {
 }
 
 function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
-  const [budgetDialog, setBudgetDialog] = useState<{ open: boolean; budget?: Budget | null }>({ open: false });
-  const [goalDialog, setGoalDialog] = useState<{ open: boolean; goal?: SavingsGoal | null }>({ open: false });
+  const [budgetDialog, setBudgetDialog] = useState<{ open: boolean; budget?: Budget | null }>({
+    open: false,
+  });
+  const [goalDialog, setGoalDialog] = useState<{ open: boolean; goal?: SavingsGoal | null }>({
+    open: false,
+  });
   const [contributionGoal, setContributionGoal] = useState<SavingsGoal | null>(null);
   const budgetHistoryQuery = useBudgetHistory();
   const deleteBudget = useDeleteBudget();
@@ -633,7 +714,9 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="text-base">Budget overview</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">Monthly category limits calculated against posted spending.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Monthly category limits calculated against posted spending.
+              </p>
             </div>
             <Button size="sm" onClick={() => setBudgetDialog({ open: true, budget: null })}>
               <Plus className="size-4" aria-hidden />
@@ -652,9 +735,19 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
             ) : (
               <>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <MiniMetric label="Budgeted" value={formatMoney(summary.budgetOverview.totalBudgeted)} />
-                  <MiniMetric label="Remaining" value={formatMoney(summary.budgetOverview.totalRemaining)} />
-                  <MiniMetric label="Pressure" value={`${Math.round(summary.budgetOverview.usagePercent)}%`} state={summary.budgetOverview.state} />
+                  <MiniMetric
+                    label="Budgeted"
+                    value={formatMoney(summary.budgetOverview.totalBudgeted)}
+                  />
+                  <MiniMetric
+                    label="Remaining"
+                    value={formatMoney(summary.budgetOverview.totalRemaining)}
+                  />
+                  <MiniMetric
+                    label="Pressure"
+                    value={`${Math.round(summary.budgetOverview.usagePercent)}%`}
+                    state={summary.budgetOverview.state}
+                  />
                 </div>
                 <div className="grid gap-3">
                   {budgets.slice(0, 4).map((budget) => (
@@ -675,7 +768,9 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="text-base">Savings goals</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">Progress comes from explicit contributions, not inferred transfers.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Progress comes from explicit contributions, not inferred transfers.
+              </p>
             </div>
             <Button size="sm" onClick={() => setGoalDialog({ open: true, goal: null })}>
               <Target className="size-4" aria-hidden />
@@ -730,7 +825,11 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
               <ChartEmpty label="No category is over budget right now" />
             ) : (
               summary.topOverspendingCategories.map((item) => (
-                <WidgetLine key={item.categoryId ?? item.name} label={item.name} value={`${formatMoney(item.total)} over`} />
+                <WidgetLine
+                  key={item.categoryId ?? item.name}
+                  label={item.name}
+                  value={`${formatMoney(item.total)} over`}
+                />
               ))
             )}
           </CardContent>
@@ -744,13 +843,19 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
               <ChartEmpty label="Budget changes will appear here" />
             ) : (
               (budgetHistoryQuery.data ?? []).slice(0, 5).map((entry) => (
-                <div key={entry.id} className="rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-sm">
+                <div
+                  key={entry.id}
+                  className="rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-sm"
+                >
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium">{entry.action.toLowerCase()}</span>
-                    <span className="text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleDateString("en-IN")}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(entry.createdAt).toLocaleDateString("en-IN")}
+                    </span>
                   </div>
                   <p className="mt-1 text-muted-foreground">
-                    {entry.newName ?? entry.budgetName ?? "Budget"} {entry.newAmount ? `at ${formatMoney(entry.newAmount)}` : ""}
+                    {entry.newName ?? entry.budgetName ?? "Budget"}{" "}
+                    {entry.newAmount ? `at ${formatMoney(entry.newAmount)}` : ""}
                   </p>
                 </div>
               ))
@@ -763,7 +868,9 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
         <BudgetDialog
           budget={budgetDialog.budget}
           open={budgetDialog.open}
-          onOpenChange={(open) => setBudgetDialog({ open, budget: open ? budgetDialog.budget : null })}
+          onOpenChange={(open) =>
+            setBudgetDialog({ open, budget: open ? budgetDialog.budget : null })
+          }
         />
       ) : null}
       {goalDialog.open ? (
@@ -773,12 +880,25 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
           onOpenChange={(open) => setGoalDialog({ open, goal: open ? goalDialog.goal : null })}
         />
       ) : null}
-      {contributionGoal ? <ContributionDialog goal={contributionGoal} onOpenChange={(open) => !open && setContributionGoal(null)} /> : null}
+      {contributionGoal ? (
+        <ContributionDialog
+          goal={contributionGoal}
+          onOpenChange={(open) => !open && setContributionGoal(null)}
+        />
+      ) : null}
     </section>
   );
 }
 
-function BudgetProgressCard({ budget, onEdit, onDelete }: { budget: Budget; onEdit: () => void; onDelete: () => void }) {
+function BudgetProgressCard({
+  budget,
+  onEdit,
+  onDelete,
+}: {
+  budget: Budget;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-background/70 p-3 transition-colors hover:bg-muted/25">
       <div className="flex items-start justify-between gap-3">
@@ -802,7 +922,11 @@ function BudgetProgressCard({ budget, onEdit, onDelete }: { budget: Budget; onEd
       <div className="grid grid-cols-3 gap-2 text-xs">
         <MiniMetric label="Spent" value={formatMoney(budget.spent)} />
         <MiniMetric label="Limit" value={formatMoney(budget.amount)} />
-        <MiniMetric label={budget.remaining >= 0 ? "Left" : "Over"} value={formatMoney(Math.abs(budget.remaining))} state={budget.state} />
+        <MiniMetric
+          label={budget.remaining >= 0 ? "Left" : "Over"}
+          value={formatMoney(Math.abs(budget.remaining))}
+          state={budget.state}
+        />
       </div>
     </div>
   );
@@ -824,11 +948,17 @@ function GoalProgressCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            {goal.status === "COMPLETED" ? <CheckCircle2 className="size-4 text-success" aria-hidden /> : <Target className="size-4 text-primary" aria-hidden />}
+            {goal.status === "COMPLETED" ? (
+              <CheckCircle2 className="size-4 text-success" aria-hidden />
+            ) : (
+              <Target className="size-4 text-primary" aria-hidden />
+            )}
             <h3 className="truncate text-sm font-semibold">{goal.name}</h3>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {goal.targetDate ? `Target ${new Date(goal.targetDate).toLocaleDateString("en-IN")}` : "Open timeline"}
+            {goal.targetDate
+              ? `Target ${new Date(goal.targetDate).toLocaleDateString("en-IN")}`
+              : "Open timeline"}
           </p>
         </div>
         <div className="flex gap-1">
@@ -847,7 +977,10 @@ function GoalProgressCard({
       <div className="grid grid-cols-3 gap-2 text-xs">
         <MiniMetric label="Saved" value={formatMoney(goal.currentAmount)} />
         <MiniMetric label="Target" value={formatMoney(goal.targetAmount)} />
-        <MiniMetric label="Monthly" value={goal.monthlyTarget > 0 ? formatMoney(goal.monthlyTarget) : "Flexible"} />
+        <MiniMetric
+          label="Monthly"
+          value={goal.monthlyTarget > 0 ? formatMoney(goal.monthlyTarget) : "Flexible"}
+        />
       </div>
     </div>
   );
@@ -867,7 +1000,9 @@ function FinancialHealthCard({ summary }: { summary: DashboardFinanceSummary }) 
               <StateDot state={health.state} />
               <p className="text-sm font-medium">{stateLabel(health.state)}</p>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">A deterministic foundation from cashflow, consistency, and budget pressure.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              A deterministic foundation from cashflow, consistency, and budget pressure.
+            </p>
           </div>
           <div className="text-right">
             <p className="text-3xl font-semibold tabular-nums">{health.score}</p>
@@ -875,10 +1010,17 @@ function FinancialHealthCard({ summary }: { summary: DashboardFinanceSummary }) 
           </div>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <MiniMetric label="Savings ratio" value={`${Math.round(health.savingsRatio)}%`} state={summary.savingsMomentum.state} />
+          <MiniMetric
+            label="Savings ratio"
+            value={`${Math.round(health.savingsRatio)}%`}
+            state={summary.savingsMomentum.state}
+          />
           <MiniMetric label="Consistency" value={`${Math.round(health.spendingConsistency)}%`} />
           <MiniMetric label="Stability" value={`${Math.round(health.incomeExpenseStability)}%`} />
-          <MiniMetric label="Goal contributions" value={formatMoney(summary.savingsMomentum.goalContributionsThisMonth)} />
+          <MiniMetric
+            label="Goal contributions"
+            value={formatMoney(summary.savingsMomentum.goalContributionsThisMonth)}
+          />
         </div>
       </CardContent>
     </Card>
@@ -890,12 +1032,15 @@ function CategoryTrendWidget({ data }: { data: CategoryTrend[] }) {
     return <ChartEmpty label="Category trend appears after monthly spending data builds up" />;
   }
   const grouped = Object.values(
-    data.reduce<Record<string, { name: string; colorToken: string; total: number }>>((acc, item) => {
-      const key = item.categoryId ?? item.name;
-      acc[key] = acc[key] ?? { name: item.name, colorToken: item.colorToken, total: 0 };
-      acc[key].total += item.total;
-      return acc;
-    }, {})
+    data.reduce<Record<string, { name: string; colorToken: string; total: number }>>(
+      (acc, item) => {
+        const key = item.categoryId ?? item.name;
+        acc[key] = acc[key] ?? { name: item.name, colorToken: item.colorToken, total: 0 };
+        acc[key].total += item.total;
+        return acc;
+      },
+      {}
+    )
   )
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
@@ -908,7 +1053,10 @@ function CategoryTrendWidget({ data }: { data: CategoryTrend[] }) {
           <div className="h-2 rounded-full bg-muted">
             <div
               className="h-full rounded-full transition-[width] duration-500"
-              style={{ width: `${(item.total / max) * 100}%`, background: `var(--chart-${(index % 5) + 1})` }}
+              style={{
+                width: `${(item.total / max) * 100}%`,
+                background: `var(--chart-${(index % 5) + 1})`,
+              }}
             />
           </div>
           <span className="text-xs tabular-nums">{formatMoney(item.total)}</span>
@@ -933,7 +1081,9 @@ function BudgetDialog({
   const [categoryId, setCategoryId] = useState(budget?.category.id ?? "");
   const [name, setName] = useState(budget?.name ?? "");
   const [amount, setAmount] = useState(budget?.amount ? String(budget.amount) : "");
-  const [startsOn, setStartsOn] = useState((budget?.periodStart ?? new Date().toISOString()).slice(0, 10));
+  const [startsOn, setStartsOn] = useState(
+    (budget?.periodStart ?? new Date().toISOString()).slice(0, 10)
+  );
   const [rolloverEnabled, setRolloverEnabled] = useState(Boolean(budget?.rolloverEnabled));
 
   function submit(event: FormEvent) {
@@ -956,7 +1106,9 @@ function BudgetDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{budget ? "Edit budget" : "Create budget"}</DialogTitle>
-          <DialogDescription>Set one monthly category limit using your existing imported categories.</DialogDescription>
+          <DialogDescription>
+            Set one monthly category limit using your existing imported categories.
+          </DialogDescription>
         </DialogHeader>
         <form className="grid gap-3" onSubmit={submit}>
           <FilterSelect value={categoryId} onChange={setCategoryId}>
@@ -967,16 +1119,38 @@ function BudgetDialog({
               </option>
             ))}
           </FilterSelect>
-          <Input required value={name} placeholder="Budget name" onChange={(event) => setName(event.target.value)} />
-          <Input required min="1" type="number" value={amount} placeholder="Monthly amount" onChange={(event) => setAmount(event.target.value)} />
-          <Input type="date" value={startsOn} onChange={(event) => setStartsOn(event.target.value)} />
+          <Input
+            required
+            value={name}
+            placeholder="Budget name"
+            onChange={(event) => setName(event.target.value)}
+          />
+          <Input
+            required
+            min="1"
+            type="number"
+            value={amount}
+            placeholder="Monthly amount"
+            onChange={(event) => setAmount(event.target.value)}
+          />
+          <Input
+            type="date"
+            value={startsOn}
+            onChange={(event) => setStartsOn(event.target.value)}
+          />
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input checked={rolloverEnabled} type="checkbox" onChange={(event) => setRolloverEnabled(event.target.checked)} />
+            <input
+              checked={rolloverEnabled}
+              type="checkbox"
+              onChange={(event) => setRolloverEnabled(event.target.checked)}
+            />
             Prepare rollover tracking
           </label>
           <DialogFooter>
             <Button disabled={!categoryId || createBudget.isPending || updateBudget.isPending}>
-              {createBudget.isPending || updateBudget.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+              {createBudget.isPending || updateBudget.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
               Save
             </Button>
           </DialogFooter>
@@ -986,12 +1160,24 @@ function BudgetDialog({
   );
 }
 
-function GoalDialog({ open, goal, onOpenChange }: { open: boolean; goal?: SavingsGoal | null; onOpenChange: (open: boolean) => void }) {
+function GoalDialog({
+  open,
+  goal,
+  onOpenChange,
+}: {
+  open: boolean;
+  goal?: SavingsGoal | null;
+  onOpenChange: (open: boolean) => void;
+}) {
   const createGoal = useCreateSavingsGoal();
   const updateGoal = useUpdateSavingsGoal(goal?.id);
   const [name, setName] = useState(goal?.name ?? "");
-  const [targetAmount, setTargetAmount] = useState(goal?.targetAmount ? String(goal.targetAmount) : "");
-  const [currentAmount, setCurrentAmount] = useState(goal?.currentAmount ? String(goal.currentAmount) : "");
+  const [targetAmount, setTargetAmount] = useState(
+    goal?.targetAmount ? String(goal.targetAmount) : ""
+  );
+  const [currentAmount, setCurrentAmount] = useState(
+    goal?.currentAmount ? String(goal.currentAmount) : ""
+  );
   const [targetDate, setTargetDate] = useState(goal?.targetDate?.slice(0, 10) ?? "");
 
   function submit(event: FormEvent) {
@@ -1014,16 +1200,44 @@ function GoalDialog({ open, goal, onOpenChange }: { open: boolean; goal?: Saving
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{goal ? "Edit goal" : "Create savings goal"}</DialogTitle>
-          <DialogDescription>Goal progress updates only when a contribution is recorded.</DialogDescription>
+          <DialogDescription>
+            Goal progress updates only when a contribution is recorded.
+          </DialogDescription>
         </DialogHeader>
         <form className="grid gap-3" onSubmit={submit}>
-          <Input required value={name} placeholder="Goal name" onChange={(event) => setName(event.target.value)} />
-          <Input required min="1" type="number" value={targetAmount} placeholder="Target amount" onChange={(event) => setTargetAmount(event.target.value)} />
-          {!goal ? <Input min="0" type="number" value={currentAmount} placeholder="Already saved" onChange={(event) => setCurrentAmount(event.target.value)} /> : null}
-          <Input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} />
+          <Input
+            required
+            value={name}
+            placeholder="Goal name"
+            onChange={(event) => setName(event.target.value)}
+          />
+          <Input
+            required
+            min="1"
+            type="number"
+            value={targetAmount}
+            placeholder="Target amount"
+            onChange={(event) => setTargetAmount(event.target.value)}
+          />
+          {!goal ? (
+            <Input
+              min="0"
+              type="number"
+              value={currentAmount}
+              placeholder="Already saved"
+              onChange={(event) => setCurrentAmount(event.target.value)}
+            />
+          ) : null}
+          <Input
+            type="date"
+            value={targetDate}
+            onChange={(event) => setTargetDate(event.target.value)}
+          />
           <DialogFooter>
             <Button disabled={createGoal.isPending || updateGoal.isPending}>
-              {createGoal.isPending || updateGoal.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+              {createGoal.isPending || updateGoal.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
               Save
             </Button>
           </DialogFooter>
@@ -1033,7 +1247,13 @@ function GoalDialog({ open, goal, onOpenChange }: { open: boolean; goal?: Saving
   );
 }
 
-function ContributionDialog({ goal, onOpenChange }: { goal: SavingsGoal | null; onOpenChange: (open: boolean) => void }) {
+function ContributionDialog({
+  goal,
+  onOpenChange,
+}: {
+  goal: SavingsGoal | null;
+  onOpenChange: (open: boolean) => void;
+}) {
   const addContribution = useAddGoalContribution(goal?.id);
   const [amount, setAmount] = useState("");
   const [contributedOn, setContributedOn] = useState(new Date().toISOString().slice(0, 10));
@@ -1058,15 +1278,34 @@ function ContributionDialog({ goal, onOpenChange }: { goal: SavingsGoal | null; 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add contribution</DialogTitle>
-          <DialogDescription>{goal?.name ?? "Goal"} will update from this recorded amount.</DialogDescription>
+          <DialogDescription>
+            {goal?.name ?? "Goal"} will update from this recorded amount.
+          </DialogDescription>
         </DialogHeader>
         <form className="grid gap-3" onSubmit={submit}>
-          <Input required min="1" type="number" value={amount} placeholder="Amount" onChange={(event) => setAmount(event.target.value)} />
-          <Input type="date" value={contributedOn} onChange={(event) => setContributedOn(event.target.value)} />
-          <Input value={note} placeholder="Note" onChange={(event) => setNote(event.target.value)} />
+          <Input
+            required
+            min="1"
+            type="number"
+            value={amount}
+            placeholder="Amount"
+            onChange={(event) => setAmount(event.target.value)}
+          />
+          <Input
+            type="date"
+            value={contributedOn}
+            onChange={(event) => setContributedOn(event.target.value)}
+          />
+          <Input
+            value={note}
+            placeholder="Note"
+            onChange={(event) => setNote(event.target.value)}
+          />
           <DialogFooter>
             <Button disabled={addContribution.isPending}>
-              {addContribution.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+              {addContribution.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
               Add
             </Button>
           </DialogFooter>
@@ -1088,7 +1327,9 @@ function CategoryManagementPanel() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold">Categories</h2>
-          <p className="text-sm text-muted-foreground">Create custom categories, tune labels, and merge cleanup categories.</p>
+          <p className="text-sm text-muted-foreground">
+            Create custom categories, tune labels, and merge cleanup categories.
+          </p>
         </div>
         <Button variant="outline" onClick={() => setEditingCategoryId("new")}>
           <Plus className="size-4" aria-hidden />
@@ -1097,20 +1338,37 @@ function CategoryManagementPanel() {
       </div>
       <div className="grid gap-2 rounded-lg border border-border bg-card p-3 shadow-raised md:grid-cols-2 xl:grid-cols-4">
         {categories.map((category) => (
-          <div key={category.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-background/70 px-3 py-2">
+          <div
+            key={category.id}
+            className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-background/70 px-3 py-2"
+          >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="size-2.5 rounded-full bg-primary" />
                 <span className="truncate text-sm font-medium">{category.name}</span>
               </div>
-              <p className="text-xs text-muted-foreground">{category.systemCategory ? "System" : `${category.iconName} / ${category.colorToken}`}</p>
+              <p className="text-xs text-muted-foreground">
+                {category.systemCategory
+                  ? "System"
+                  : `${category.iconName} / ${category.colorToken}`}
+              </p>
             </div>
             {!category.systemCategory ? (
               <div className="flex gap-1">
-                <Button size="icon-xs" variant="ghost" onClick={() => setEditingCategoryId(category.id)} title="Rename category">
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={() => setEditingCategoryId(category.id)}
+                  title="Rename category"
+                >
                   <Edit3 className="size-3" aria-hidden />
                 </Button>
-                <Button size="icon-xs" variant="ghost" onClick={() => setMergeCategoryId(category.id)} title="Merge category">
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={() => setMergeCategoryId(category.id)}
+                  title="Merge category"
+                >
                   <Merge className="size-3" aria-hidden />
                 </Button>
               </div>
@@ -1120,7 +1378,11 @@ function CategoryManagementPanel() {
       </div>
       {editingCategoryId ? (
         <CategoryDialog
-          category={editingCategoryId === "new" ? null : categories.find((category) => category.id === editingCategoryId)}
+          category={
+            editingCategoryId === "new"
+              ? null
+              : categories.find((category) => category.id === editingCategoryId)
+          }
           open={Boolean(editingCategoryId)}
           onOpenChange={(open) => !open && setEditingCategoryId(null)}
         />
@@ -1154,7 +1416,14 @@ function CategoryDialog({
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    const payload = { name, colorToken, iconName, reason: category ? "Category updated from dashboard" : "Custom category created from dashboard" };
+    const payload = {
+      name,
+      colorToken,
+      iconName,
+      reason: category
+        ? "Category updated from dashboard"
+        : "Custom category created from dashboard",
+    };
     const mutation = category ? updateCategory : createCategory;
     mutation.mutate(payload, { onSuccess: () => onOpenChange(false) });
   }
@@ -1164,10 +1433,17 @@ function CategoryDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{category ? "Rename category" : "Create category"}</DialogTitle>
-          <DialogDescription>Custom categories remain auditable and available for budgets.</DialogDescription>
+          <DialogDescription>
+            Custom categories remain auditable and available for budgets.
+          </DialogDescription>
         </DialogHeader>
         <form className="grid gap-3" onSubmit={submit}>
-          <Input required value={name} placeholder="Category name" onChange={(event) => setName(event.target.value)} />
+          <Input
+            required
+            value={name}
+            placeholder="Category name"
+            onChange={(event) => setName(event.target.value)}
+          />
           <FilterSelect value={colorToken} onChange={setColorToken}>
             <option value="green">Green</option>
             <option value="blue">Blue</option>
@@ -1218,7 +1494,10 @@ function CategoryMergeDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Merge category</DialogTitle>
-          <DialogDescription>Transactions and budgets using {category?.name ?? "this category"} move to the target category.</DialogDescription>
+          <DialogDescription>
+            Transactions and budgets using {category?.name ?? "this category"} move to the target
+            category.
+          </DialogDescription>
         </DialogHeader>
         <form className="grid gap-3" onSubmit={submit}>
           <FilterSelect value={targetCategoryId} onChange={setTargetCategoryId}>
@@ -1233,7 +1512,9 @@ function CategoryMergeDialog({
           </FilterSelect>
           <DialogFooter>
             <Button disabled={!targetCategoryId || mergeCategory.isPending}>
-              {mergeCategory.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+              {mergeCategory.isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
               Merge
             </Button>
           </DialogFooter>
@@ -1271,11 +1552,21 @@ function PlanningEmpty({
   );
 }
 
-function MiniMetric({ label, value, state }: { label: string; value: string; state?: "HEALTHY" | "CAUTION" | "RISK" }) {
+function MiniMetric({
+  label,
+  value,
+  state,
+}: {
+  label: string;
+  value: string;
+  state?: "HEALTHY" | "CAUTION" | "RISK";
+}) {
   return (
     <div className="rounded-lg border border-border/70 bg-background/65 px-3 py-2">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("mt-1 truncate text-sm font-semibold tabular-nums", stateTextClass(state))}>{value}</p>
+      <p className={cn("mt-1 truncate text-sm font-semibold tabular-nums", stateTextClass(state))}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -1369,41 +1660,89 @@ function stateTextClass(state?: "HEALTHY" | "CAUTION" | "RISK") {
 }
 
 function TrendLineChart({ data }: { data: MonthlySummary[] }) {
+  const chart = useMemo(() => {
+    const values = data.map((item) => item.expense);
+    const max = Math.max(...values, 1);
+    const points = data.map((item, index) => {
+      const x = data.length === 1 ? 50 : (index / (data.length - 1)) * 100;
+      const y = 90 - (item.expense / max) * 75;
+      return `${x},${y}`;
+    });
+    return { points };
+  }, [data]);
+
   if (data.length === 0) {
     return <ChartEmpty label="No trend yet" />;
   }
-  const values = data.map((item) => item.expense);
-  const max = Math.max(...values, 1);
-  const points = data.map((item, index) => {
-    const x = data.length === 1 ? 50 : (index / (data.length - 1)) * 100;
-    const y = 90 - (item.expense / max) * 75;
-    return `${x},${y}`;
-  });
   return (
     <div className="grid gap-3">
-      <svg className="h-48 w-full overflow-visible" role="img" aria-label="Monthly spending trend" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <polyline fill="none" points={points.join(" ")} stroke="var(--primary)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
-        {points.map((point) => {
+      <svg
+        className="h-48 w-full overflow-visible"
+        role="img"
+        aria-label="Monthly spending trend"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <polyline
+          fill="none"
+          points={chart.points.join(" ")}
+          stroke="var(--primary)"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2.5"
+          vectorEffect="non-scaling-stroke"
+        />
+        {chart.points.map((point) => {
           const [x, y] = point.split(",");
-          return <circle key={point} cx={x} cy={y} fill="var(--background)" r="1.8" stroke="var(--primary)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />;
+          return (
+            <circle
+              key={point}
+              cx={x}
+              cy={y}
+              fill="var(--background)"
+              r="1.8"
+              stroke="var(--primary)"
+              strokeWidth="1.5"
+              vectorEffect="non-scaling-stroke"
+            />
+          );
         })}
       </svg>
       <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground sm:grid-cols-6">
         {data.map((item) => (
-          <span key={item.periodStart}>{new Date(item.periodStart).toLocaleDateString("en-IN", { month: "short" })}</span>
+          <span key={item.periodStart}>
+            {new Date(item.periodStart).toLocaleDateString("en-IN", { month: "short" })}
+          </span>
         ))}
       </div>
+      <table className="sr-only">
+        <caption>Monthly spending trend values</caption>
+        <tbody>
+          {data.map((item) => (
+            <tr key={`${item.periodStart}-a11y`}>
+              <th scope="row">
+                {new Date(item.periodStart).toLocaleDateString("en-IN", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </th>
+              <td>{formatMoney(item.expense)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 function CategoryDistribution({ data }: { data: CategorySpend[] }) {
+  const visibleData = useMemo(() => data.slice(0, 6), [data]);
   if (data.length === 0) {
     return <ChartEmpty label="No category spending this month" />;
   }
   return (
     <div className="grid gap-3">
-      {data.slice(0, 6).map((item) => (
+      {visibleData.map((item) => (
         <div key={item.categoryId ?? item.name} className="grid gap-1">
           <div className="flex items-center justify-between gap-3 text-sm">
             <span className="truncate font-medium">{item.name}</span>
@@ -1413,10 +1752,22 @@ function CategoryDistribution({ data }: { data: CategorySpend[] }) {
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-500"
               style={{ width: `${Math.max(3, item.share)}%` }}
+              aria-hidden
             />
           </div>
         </div>
       ))}
+      <table className="sr-only">
+        <caption>Category spending values</caption>
+        <tbody>
+          {visibleData.map((item) => (
+            <tr key={`${item.categoryId ?? item.name}-a11y`}>
+              <th scope="row">{item.name}</th>
+              <td>{formatMoney(item.total)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1429,16 +1780,25 @@ function MonthlyComparison({ data }: { data: MonthlySummary[] }) {
   return (
     <div className="grid gap-3">
       {data.map((item) => (
-        <div key={item.periodStart} className="grid grid-cols-[3.5rem_1fr] items-center gap-3 text-sm">
+        <div
+          key={item.periodStart}
+          className="grid grid-cols-[3.5rem_1fr] items-center gap-3 text-sm"
+        >
           <span className="text-xs text-muted-foreground">
             {new Date(item.periodStart).toLocaleDateString("en-IN", { month: "short" })}
           </span>
           <div className="grid gap-1">
             <div className="h-2 rounded-full bg-success/20">
-              <div className="h-full rounded-full bg-success" style={{ width: `${(item.income / max) * 100}%` }} />
+              <div
+                className="h-full rounded-full bg-success"
+                style={{ width: `${(item.income / max) * 100}%` }}
+              />
             </div>
             <div className="h-2 rounded-full bg-primary/15">
-              <div className="h-full rounded-full bg-primary" style={{ width: `${(item.expense / max) * 100}%` }} />
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${(item.expense / max) * 100}%` }}
+              />
             </div>
           </div>
         </div>
@@ -1467,7 +1827,9 @@ function DashboardEmptyState({ accountCount }: { accountCount: number }) {
             Data foundation ready
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-semibold leading-tight sm:text-3xl">No transactions yet.</h2>
+            <h2 className="text-2xl font-semibold leading-tight sm:text-3xl">
+              No transactions yet.
+            </h2>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
               Import a CSV to activate real dashboard totals, category charts, and account activity.
             </p>
@@ -1481,7 +1843,11 @@ function DashboardEmptyState({ accountCount }: { accountCount: number }) {
               <FileUp className="size-4" aria-hidden />
               Import CSV
             </Button>
-            <Button variant="outline" disabled={seedDemo.isPending} onClick={() => seedDemo.mutate()}>
+            <Button
+              variant="outline"
+              disabled={seedDemo.isPending}
+              onClick={() => seedDemo.mutate()}
+            >
               {seedDemo.isPending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
               Seed local demo
             </Button>
@@ -1493,16 +1859,34 @@ function DashboardEmptyState({ accountCount }: { accountCount: number }) {
           </CardHeader>
           <CardContent className="grid gap-3 text-sm text-muted-foreground">
             <WidgetLine label="Profile" value="Complete" />
-            <WidgetLine label="Accounts" value={accountCount > 0 ? `${accountCount} connected` : "Waiting"} />
+            <WidgetLine
+              label="Accounts"
+              value={accountCount > 0 ? `${accountCount} connected` : "Waiting"}
+            />
             <WidgetLine label="Transactions" value="Empty" />
           </CardContent>
         </Card>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <FinancialCard title="Account balance" value={formatMoney(0)} detail="No account balances yet." icon={Landmark} />
-        <FinancialCard title="Spending overview" value="No data" detail="Charts appear after imports." icon={ReceiptText} />
-        <FinancialCard title="Net cashflow" value={formatMoney(0)} detail="No cashflow yet." icon={CircleDollarSign} />
+        <FinancialCard
+          title="Account balance"
+          value={formatMoney(0)}
+          detail="No account balances yet."
+          icon={Landmark}
+        />
+        <FinancialCard
+          title="Spending overview"
+          value="No data"
+          detail="Charts appear after imports."
+          icon={ReceiptText}
+        />
+        <FinancialCard
+          title="Net cashflow"
+          value={formatMoney(0)}
+          detail="No cashflow yet."
+          icon={CircleDollarSign}
+        />
       </section>
 
       <TransactionList transactions={[]} emptyLabel="Your first transaction will appear here." />

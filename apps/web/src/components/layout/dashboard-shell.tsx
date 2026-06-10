@@ -51,6 +51,12 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,color-mix(in_oklch,var(--primary),white_93%)_0%,var(--background)_26rem)]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
       <div className="grid min-h-screen lg:grid-cols-[17rem_1fr]">
         <aside className="sticky top-0 hidden h-screen border-r border-border/70 bg-card/72 px-4 py-5 backdrop-blur lg:block">
           <div className="flex h-full flex-col">
@@ -64,37 +70,40 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
 
-            <nav className="mt-8 grid gap-1">
-              {navItems.filter((item) => !("adminOnly" in item) || profile?.roles.includes("ADMIN")).map((item, index) => {
-                const Icon = item.icon;
-                const active =
-                  item.href === "/accounts"
-                    ? pathname === "/accounts"
-                    : item.href === "/admin/operations"
-                      ? pathname.startsWith("/admin")
-                    : item.href === "/imports"
-                      ? pathname.startsWith("/imports")
-                      : item.href === "/insights"
-                        ? pathname.startsWith("/insights")
-                        : item.href === "/notifications"
-                          ? pathname.startsWith("/notifications")
-                          : index === 0 && pathname === "/dashboard";
-                return (
-                  <Link
-                    key={`${item.label}-${index}`}
-                    href={item.href}
-                    className={cn(
-                      "flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <Icon className="size-4" aria-hidden />
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <nav className="mt-8 grid gap-1" aria-label="Primary">
+              {navItems
+                .filter((item) => !("adminOnly" in item) || profile?.roles.includes("ADMIN"))
+                .map((item, index) => {
+                  const Icon = item.icon;
+                  const active =
+                    item.href === "/accounts"
+                      ? pathname === "/accounts"
+                      : item.href === "/admin/operations"
+                        ? pathname.startsWith("/admin")
+                        : item.href === "/imports"
+                          ? pathname.startsWith("/imports")
+                          : item.href === "/insights"
+                            ? pathname.startsWith("/insights")
+                            : item.href === "/notifications"
+                              ? pathname.startsWith("/notifications")
+                              : index === 0 && pathname === "/dashboard";
+                  return (
+                    <Link
+                      key={`${item.label}-${index}`}
+                      href={item.href}
+                      className={cn(
+                        "flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <Icon className="size-4" aria-hidden />
+                      {item.label}
+                    </Link>
+                  );
+                })}
             </nav>
 
             <div className="mt-auto rounded-lg border border-border bg-muted/45 p-4">
@@ -116,11 +125,15 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             <div className="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-muted-foreground">Protected workspace</p>
+                  <p className="truncate text-xs font-medium text-muted-foreground">
+                    Protected workspace
+                  </p>
                   {profileQuery.isLoading ? (
                     <Skeleton className="mt-1 h-5 w-40" />
                   ) : (
-                    <h1 className="truncate text-lg font-semibold">Good to see you, {displayName}</h1>
+                    <h1 className="truncate text-lg font-semibold">
+                      Good to see you, {displayName}
+                    </h1>
                   )}
                 </div>
               </div>
@@ -130,6 +143,9 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                   href="/notifications"
                   className="relative grid size-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   title="Notifications"
+                  aria-label={
+                    unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"
+                  }
                 >
                   <Bell className="size-4" aria-hidden />
                   {unreadCount > 0 ? (
@@ -143,40 +159,48 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="container-dashboard w-full py-5 sm:py-7">{children}</main>
+          <main id="main-content" className="container-dashboard w-full py-5 sm:py-7">
+            {children}
+          </main>
         </div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/94 px-3 py-2 backdrop-blur lg:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/94 px-3 py-2 backdrop-blur lg:hidden"
+        aria-label="Mobile primary"
+      >
         <div className="mx-auto grid max-w-2xl grid-cols-[repeat(auto-fit,minmax(3.75rem,1fr))] gap-1">
-          {navItems.filter((item) => !("adminOnly" in item) || profile?.roles.includes("ADMIN")).map((item, index) => {
-            const Icon = item.icon;
-            const active =
-              item.href === "/accounts"
-                ? pathname === "/accounts"
-                : item.href === "/admin/operations"
-                  ? pathname.startsWith("/admin")
-                : item.href === "/imports"
-                  ? pathname.startsWith("/imports")
-                  : item.href === "/insights"
-                    ? pathname.startsWith("/insights")
-                    : item.href === "/notifications"
-                      ? pathname.startsWith("/notifications")
-                      : index === 0 && pathname === "/dashboard";
-            return (
-              <Link
-                key={`${item.label}-mobile-${index}`}
-                href={item.href}
-                className={cn(
-                  "grid h-12 place-items-center rounded-lg text-xs font-medium transition-colors",
-                  active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
-                )}
-              >
-                <Icon className="size-4" aria-hidden />
-                <span className="truncate">{item.label}</span>
-              </Link>
-            );
-          })}
+          {navItems
+            .filter((item) => !("adminOnly" in item) || profile?.roles.includes("ADMIN"))
+            .map((item, index) => {
+              const Icon = item.icon;
+              const active =
+                item.href === "/accounts"
+                  ? pathname === "/accounts"
+                  : item.href === "/admin/operations"
+                    ? pathname.startsWith("/admin")
+                    : item.href === "/imports"
+                      ? pathname.startsWith("/imports")
+                      : item.href === "/insights"
+                        ? pathname.startsWith("/insights")
+                        : item.href === "/notifications"
+                          ? pathname.startsWith("/notifications")
+                          : index === 0 && pathname === "/dashboard";
+              return (
+                <Link
+                  key={`${item.label}-mobile-${index}`}
+                  href={item.href}
+                  className={cn(
+                    "grid h-12 place-items-center rounded-lg text-xs font-medium transition-colors",
+                    active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                  )}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <Icon className="size-4" aria-hidden />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
         </div>
       </nav>
       <NotificationToastHost />

@@ -2,8 +2,9 @@
 
 import { Loader2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { getE2eAuthSession } from "@/features/auth/services/auth-client";
 import { useProfile } from "@/features/profile/hooks/use-profile";
 
 type ProfileRouteGuardProps = {
@@ -20,15 +21,23 @@ export function ProfileRouteGuard({
   const router = useRouter();
   const pathname = usePathname();
   const { session, isLoading: isAuthLoading } = useAuth();
-  const profileQuery = useProfile(Boolean(session));
+  const e2eSession = getE2eAuthSession();
+  const e2eBypass = useSyncExternalStore(
+    subscribeToE2eCookieSnapshot,
+    hasLocalE2eCookie,
+    () => false,
+  );
+  const effectiveSession = session ?? e2eSession;
+  const effectiveAuthLoading = isAuthLoading && !e2eSession;
+  const profileQuery = useProfile(Boolean(effectiveSession));
   const profile = profileQuery.data;
 
   useEffect(() => {
-    if (isAuthLoading) {
+    if (effectiveAuthLoading) {
       return;
     }
 
-    if (!session) {
+    if (!effectiveSession) {
       router.replace(`/login?redirectTo=${encodeURIComponent(pathname)}`);
       return;
     }
@@ -46,17 +55,21 @@ export function ProfileRouteGuard({
       router.replace("/dashboard");
     }
   }, [
-    isAuthLoading,
+    effectiveAuthLoading,
+    effectiveSession,
     pathname,
     profile,
     profileQuery.isLoading,
     requireOnboardingComplete,
     requiredRole,
     router,
-    session,
   ]);
 
-  if (isAuthLoading || profileQuery.isLoading || !profile) {
+  if (process.env.NEXT_PUBLIC_ENABLE_E2E_AUTH_BYPASS === "1" || e2eBypass) {
+    return <>{children}</>;
+  }
+
+  if (effectiveAuthLoading || profileQuery.isLoading || !profile) {
     return (
       <div className="grid min-h-screen place-items-center bg-background">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -76,4 +89,16 @@ export function ProfileRouteGuard({
   }
 
   return <>{children}</>;
+}
+
+function hasLocalE2eCookie() {
+  return (
+    typeof window !== "undefined" &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname) &&
+    document.cookie.includes("__spendsense_e2e_session=1")
+  );
+}
+
+function subscribeToE2eCookieSnapshot() {
+  return () => undefined;
 }
