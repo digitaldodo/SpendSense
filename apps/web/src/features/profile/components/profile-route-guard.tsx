@@ -9,11 +9,13 @@ import { useProfile } from "@/features/profile/hooks/use-profile";
 type ProfileRouteGuardProps = {
   children: React.ReactNode;
   requireOnboardingComplete?: boolean;
+  requiredRole?: "ADMIN" | "SUPPORT" | "USER";
 };
 
 export function ProfileRouteGuard({
   children,
   requireOnboardingComplete = false,
+  requiredRole,
 }: ProfileRouteGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -37,6 +39,11 @@ export function ProfileRouteGuard({
 
     if (requireOnboardingComplete && !profile.onboardingCompleted) {
       router.replace("/onboarding");
+      return;
+    }
+
+    if (requiredRole && !profile.roles.includes(requiredRole)) {
+      router.replace("/dashboard");
     }
   }, [
     isAuthLoading,
@@ -44,6 +51,7 @@ export function ProfileRouteGuard({
     profile,
     profileQuery.isLoading,
     requireOnboardingComplete,
+    requiredRole,
     router,
     session,
   ]);
@@ -60,6 +68,10 @@ export function ProfileRouteGuard({
   }
 
   if (requireOnboardingComplete && !profile.onboardingCompleted) {
+    return null;
+  }
+
+  if (requiredRole && !profile.roles.includes(requiredRole)) {
     return null;
   }
 

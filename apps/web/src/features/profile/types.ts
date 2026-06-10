@@ -79,6 +79,7 @@ export type Profile = {
   supabaseUserId: string;
   email: string;
   displayName: string | null;
+  roles: Array<"USER" | "ADMIN" | "SUPPORT" | string>;
   onboardingCompleted: boolean;
   onboardingCompletedAt: string | null;
   onboardingProgress: OnboardingProgress;

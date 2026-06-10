@@ -26,18 +26,21 @@ public class NotificationDeliveryService {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final EmailDeliveryProvider emailDeliveryProvider;
+    private final WorkerQueueService workerQueueService;
     private final Clock clock;
 
     public NotificationDeliveryService(
             UserProfileSyncService userProfileSyncService,
             JdbcTemplate jdbcTemplate,
             ObjectMapper objectMapper,
-            EmailDeliveryProvider emailDeliveryProvider
+            EmailDeliveryProvider emailDeliveryProvider,
+            WorkerQueueService workerQueueService
     ) {
         this.userProfileSyncService = userProfileSyncService;
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.emailDeliveryProvider = emailDeliveryProvider;
+        this.workerQueueService = workerQueueService;
         this.clock = Clock.systemUTC();
     }
 
@@ -58,7 +61,7 @@ public class NotificationDeliveryService {
                     id, notification_id, scheduled_report_id, generated_report_id, user_profile_id,
                     delivery_kind, channel, provider, recipient, subject, status, trace_id, payload_json,
                     created_at, updated_at
-                ) values (?, ?, ?, ?, ?, ?, 'EMAIL', ?, ?, ?, 'PENDING', ?, ?, current_timestamp, current_timestamp)
+                ) values (?, ?, ?, ?, ?, ?, 'EMAIL', 'PENDING', ?, ?, 'PENDING', ?, ?, current_timestamp, current_timestamp)
                 """,
                 deliveryId,
                 notificationId,
@@ -66,11 +69,20 @@ public class NotificationDeliveryService {
                 generatedReportId,
                 userProfileId,
                 deliveryKind,
-                emailDeliveryProvider.providerName(),
                 recipient.email(),
                 template.subject(),
                 traceId,
                 writeJson(Map.of("html", template.html(), "text", template.text(), "templateType", template.templateType()))
+        );
+        workerQueueService.enqueue(
+                "delivery",
+                "EMAIL_DELIVERY",
+                Map.of("deliveryId", deliveryId.toString()),
+                "delivery:%s".formatted(deliveryId),
+                Instant.now(clock),
+                50,
+                MAX_ATTEMPTS,
+                traceId
         );
         return deliveryId;
     }
@@ -83,7 +95,16 @@ public class NotificationDeliveryService {
                 set status = 'RETRY_SCHEDULED', next_retry_at = current_timestamp, updated_at = current_timestamp
                 where id = ? and user_profile_id = ? and status in ('FAILED', 'RETRY_SCHEDULED')
                 """, deliveryId, userProfileId);
-        attemptDelivery(deliveryId);
+        workerQueueService.enqueue(
+                "delivery",
+                "EMAIL_DELIVERY",
+                Map.of("deliveryId", deliveryId.toString(), "manualRetry", true),
+                "delivery-retry:%s:%s".formatted(deliveryId, Instant.now(clock).toEpochMilli()),
+                Instant.now(clock),
+                10,
+                MAX_ATTEMPTS,
+                null
+        );
         return delivery(deliveryId, userProfileId);
     }
 
@@ -93,10 +114,26 @@ public class NotificationDeliveryService {
                 select id from notification_deliveries
                 where status in ('PENDING', 'RETRY_SCHEDULED')
                   and (next_retry_at is null or next_retry_at <= current_timestamp)
+                  and not exists (
+                    select 1 from worker_queues q
+                    where q.status in ('PENDING', 'RUNNING', 'RETRY_SCHEDULED')
+                      and q.idempotency_key like concat('%', notification_deliveries.id::text, '%')
+                  )
                 order by coalesce(next_retry_at, created_at) asc
                 limit ?
                 """, (rs, rowNum) -> rs.getObject("id", UUID.class), limit);
-        deliveryIds.forEach(this::attemptDelivery);
+        for (UUID deliveryId : deliveryIds) {
+            workerQueueService.enqueue(
+                    "delivery",
+                    "EMAIL_DELIVERY",
+                    Map.of("deliveryId", deliveryId.toString()),
+                    "delivery-dispatch:%s:%s".formatted(deliveryId, Instant.now(clock).toEpochMilli()),
+                    Instant.now(clock),
+                    50,
+                    MAX_ATTEMPTS,
+                    null
+            );
+        }
         return deliveryIds.size();
     }
 
@@ -147,14 +184,14 @@ public class NotificationDeliveryService {
                 """, this::retryRow, userProfileId, deliveryId);
     }
 
-    private void attemptDelivery(UUID deliveryId) {
+    public DeliveryAttemptResult attemptDelivery(UUID deliveryId) {
         DeliveryAttempt delivery = jdbcTemplate.queryForObject(
                 "select * from notification_deliveries where id = ?",
                 this::deliveryAttemptRow,
                 deliveryId
         );
         if (delivery == null || delivery.attemptCount() >= MAX_ATTEMPTS || "DELIVERED".equals(delivery.status())) {
-            return;
+            return new DeliveryAttemptResult(true, true, "SKIPPED", "Delivery does not need another attempt.");
         }
         int attemptNumber = delivery.attemptCount() + 1;
         UUID retryId = UUID.randomUUID();
@@ -163,6 +200,7 @@ public class NotificationDeliveryService {
                     id, notification_delivery_id, attempt_number, scheduled_for, status, created_at, updated_at
                 ) values (?, ?, ?, current_timestamp, 'RUNNING', current_timestamp, current_timestamp)
                 """, retryId, deliveryId, attemptNumber);
+        long started = System.nanoTime();
         EmailDeliveryResult result = emailDeliveryProvider.send(new EmailMessage(
                 delivery.recipient(),
                 delivery.subject(),
@@ -170,31 +208,34 @@ public class NotificationDeliveryService {
                 delivery.text(),
                 delivery.deliveryKind()
         ));
+        long latencyMs = Math.max(1, (System.nanoTime() - started) / 1_000_000);
+        recordProviderEvent(deliveryId, result, latencyMs, Map.of("attemptNumber", attemptNumber, "deliveryKind", delivery.deliveryKind()));
         if (result.delivered()) {
             jdbcTemplate.update("""
                     update notification_deliveries
-                    set status = 'DELIVERED', attempt_count = ?, last_attempt_at = current_timestamp,
+                    set status = 'DELIVERED', provider = ?, attempt_count = ?, last_attempt_at = current_timestamp,
                         delivered_at = current_timestamp, failed_at = null, next_retry_at = null,
                         provider_message_id = ?, error_code = null, error_message = null, updated_at = current_timestamp
                     where id = ?
-                    """, attemptNumber, result.providerMessageId(), deliveryId);
+                    """, result.provider(), attemptNumber, result.providerMessageId(), deliveryId);
             jdbcTemplate.update("""
                     update delivery_retries
                     set status = 'DELIVERED', attempted_at = current_timestamp, updated_at = current_timestamp
                     where id = ?
                     """, retryId);
-            return;
+            return new DeliveryAttemptResult(true, true, null, null);
         }
         boolean terminal = attemptNumber >= MAX_ATTEMPTS;
         Instant nextRetryAt = terminal ? null : Instant.now(clock).plusSeconds(300L * attemptNumber);
         jdbcTemplate.update("""
                 update notification_deliveries
-                set status = ?, attempt_count = ?, last_attempt_at = current_timestamp,
+                set status = ?, provider = ?, attempt_count = ?, last_attempt_at = current_timestamp,
                     failed_at = current_timestamp, next_retry_at = ?,
                     error_code = ?, error_message = ?, updated_at = current_timestamp
                 where id = ?
                 """,
                 terminal ? "FAILED" : "RETRY_SCHEDULED",
+                result.provider(),
                 attemptNumber,
                 nextRetryAt,
                 result.errorCode(),
@@ -206,6 +247,7 @@ public class NotificationDeliveryService {
                 set status = ?, attempted_at = current_timestamp, error_code = ?, error_message = ?, updated_at = current_timestamp
                 where id = ?
                 """, terminal ? "FAILED" : "RETRY_SCHEDULED", result.errorCode(), trim(result.errorMessage(), 520), retryId);
+        return new DeliveryAttemptResult(false, terminal, result.errorCode(), result.errorMessage());
     }
 
     private DeliveryHistoryResponse delivery(UUID deliveryId, UUID userProfileId) {
@@ -256,6 +298,25 @@ public class NotificationDeliveryService {
                 rs.getInt("attempt_count"),
                 payload.getOrDefault("html", ""),
                 payload.getOrDefault("text", "")
+        );
+    }
+
+    private void recordProviderEvent(UUID deliveryId, EmailDeliveryResult result, long latencyMs, Map<String, ?> metadata) {
+        jdbcTemplate.update("""
+                insert into provider_delivery_events (
+                    id, notification_delivery_id, provider, channel, event_type, status, provider_message_id,
+                    latency_ms, error_code, error_message, metadata_json, observed_at, created_at
+                ) values (?, ?, ?, 'EMAIL', 'SEND_ATTEMPT', ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp)
+                """,
+                UUID.randomUUID(),
+                deliveryId,
+                result.provider(),
+                result.delivered() ? "DELIVERED" : "FAILED",
+                result.providerMessageId(),
+                latencyMs,
+                result.errorCode(),
+                trim(result.errorMessage(), 720),
+                writeJson(metadata)
         );
     }
 
@@ -359,6 +420,14 @@ public class NotificationDeliveryService {
             int attemptCount,
             String html,
             String text
+    ) {
+    }
+
+    public record DeliveryAttemptResult(
+            boolean delivered,
+            boolean terminal,
+            String errorCode,
+            String errorMessage
     ) {
     }
 }

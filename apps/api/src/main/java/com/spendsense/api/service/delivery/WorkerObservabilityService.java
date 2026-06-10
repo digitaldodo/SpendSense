@@ -67,6 +67,24 @@ public class WorkerObservabilityService {
                 """, UUID.randomUUID(), metricName, value, unit, status, writeJson(dimensions));
     }
 
+    public void recordQueueLag(String queueName) {
+        Long lagSeconds = jdbcTemplate.query("""
+                select cast(extract(epoch from (current_timestamp - min(scheduled_for))) as bigint) as lag_seconds
+                from worker_queues
+                where queue_name = ?
+                  and status in ('PENDING', 'RETRY_SCHEDULED')
+                  and scheduled_for <= current_timestamp
+                """, rs -> rs.next() ? rs.getObject("lag_seconds", Long.class) : null, queueName);
+        long lag = lagSeconds == null ? 0 : Math.max(0, lagSeconds);
+        recordMetric(
+                "worker.queue.lag",
+                lag,
+                "seconds",
+                lag > 900 ? "DEGRADED" : "OK",
+                Map.of("queue", queueName)
+        );
+    }
+
     public SystemStatusResponse systemStatus() {
         Instant cutoff = Instant.now(clock).minus(Duration.ofHours(24));
         Long total = jdbcTemplate.queryForObject(
@@ -82,6 +100,10 @@ public class WorkerObservabilityService {
                 select count(*) from notification_deliveries
                 where status = 'RETRY_SCHEDULED' and next_retry_at <= current_timestamp
                 """, Long.class);
+        Long deadLetter = jdbcTemplate.queryForObject("""
+                select count(*) from worker_queues
+                where status = 'DEAD_LETTER'
+                """, Long.class);
         Instant heartbeat = jdbcTemplate.query("""
                 select heartbeat_at from worker_job_logs
                 order by heartbeat_at desc
@@ -92,7 +114,7 @@ public class WorkerObservabilityService {
         double successRate = totalCount == 0 ? 1 : (double) (totalCount - failedCount) / totalCount;
         String status = heartbeat == null || heartbeat.isBefore(Instant.now(clock).minus(Duration.ofHours(2)))
                 ? "WAITING"
-                : failedCount > Math.max(3, totalCount / 2) ? "DEGRADED" : "OK";
+                : failedCount > Math.max(3, totalCount / 2) || (deadLetter != null && deadLetter > 0) ? "DEGRADED" : "OK";
         return new SystemStatusResponse(
                 status,
                 Instant.now(clock),

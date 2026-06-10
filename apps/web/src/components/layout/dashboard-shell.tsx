@@ -8,6 +8,7 @@ import {
   Landmark,
   LifeBuoy,
   ReceiptText,
+  ShieldCheck,
   Sparkles,
   UserRound,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/notifications", label: "Alerts", icon: Bell },
   { href: "/imports", label: "Import", icon: FileUp },
   { href: "/accounts", label: "Accounts", icon: Landmark },
+  { href: "/admin/operations", label: "Admin", icon: ShieldCheck, adminOnly: true },
   { href: "/dashboard", label: "Profile", icon: UserRound },
 ] as const;
 
@@ -63,11 +65,13 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             </Link>
 
             <nav className="mt-8 grid gap-1">
-              {navItems.map((item, index) => {
+              {navItems.filter((item) => !("adminOnly" in item) || profile?.roles.includes("ADMIN")).map((item, index) => {
                 const Icon = item.icon;
                 const active =
                   item.href === "/accounts"
                     ? pathname === "/accounts"
+                    : item.href === "/admin/operations"
+                      ? pathname.startsWith("/admin")
                     : item.href === "/imports"
                       ? pathname.startsWith("/imports")
                       : item.href === "/insights"
@@ -144,12 +148,14 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/94 px-3 py-2 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-xl grid-cols-7 gap-1">
-          {navItems.map((item, index) => {
+        <div className="mx-auto grid max-w-2xl grid-cols-[repeat(auto-fit,minmax(3.75rem,1fr))] gap-1">
+          {navItems.filter((item) => !("adminOnly" in item) || profile?.roles.includes("ADMIN")).map((item, index) => {
             const Icon = item.icon;
             const active =
               item.href === "/accounts"
                 ? pathname === "/accounts"
+                : item.href === "/admin/operations"
+                  ? pathname.startsWith("/admin")
                 : item.href === "/imports"
                   ? pathname.startsWith("/imports")
                   : item.href === "/insights"

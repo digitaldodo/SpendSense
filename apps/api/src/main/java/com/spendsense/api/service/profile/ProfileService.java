@@ -17,6 +17,7 @@ import com.spendsense.api.repository.profile.FinancialPreferencesRepository;
 import com.spendsense.api.repository.profile.OnboardingProgressRepository;
 import com.spendsense.api.repository.user.UserProfileRepository;
 import com.spendsense.api.security.SupabasePrincipal;
+import com.spendsense.api.security.UserRole;
 import com.spendsense.api.service.user.UserProfileSyncService;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -48,7 +49,7 @@ public class ProfileService {
         UserProfile profile = userProfileSyncService.syncAuthenticatedUser(principal);
         OnboardingProgress progress = getOrCreateProgress(profile);
         FinancialPreferences preferences = getOrCreatePreferences(profile);
-        return toProfileResponse(profile, progress, preferences);
+        return toProfileResponse(principal, profile, progress, preferences);
     }
 
     @Transactional
@@ -56,7 +57,7 @@ public class ProfileService {
         UserProfile profile = userProfileSyncService.syncAuthenticatedUser(principal);
         profile.updateDisplayName(trimToNull(request.displayName()));
         UserProfile savedProfile = userProfileRepository.save(profile);
-        return toProfileResponse(savedProfile, getOrCreateProgress(savedProfile), getOrCreatePreferences(savedProfile));
+        return toProfileResponse(principal, savedProfile, getOrCreateProgress(savedProfile), getOrCreatePreferences(savedProfile));
     }
 
     @Transactional
@@ -95,7 +96,7 @@ public class ProfileService {
 
         OnboardingProgress savedProgress = onboardingProgressRepository.save(progress);
         FinancialPreferences savedPreferences = financialPreferencesRepository.save(preferences);
-        return toProfileResponse(profile, savedProgress, savedPreferences);
+        return toProfileResponse(principal, profile, savedProgress, savedPreferences);
     }
 
     @Transactional
@@ -114,7 +115,7 @@ public class ProfileService {
         UserProfile savedProfile = userProfileRepository.save(profile);
         OnboardingProgress savedProgress = onboardingProgressRepository.save(progress);
         FinancialPreferences savedPreferences = financialPreferencesRepository.save(preferences);
-        return toProfileResponse(savedProfile, savedProgress, savedPreferences);
+        return toProfileResponse(principal, savedProfile, savedProgress, savedPreferences);
     }
 
     @Transactional
@@ -149,6 +150,7 @@ public class ProfileService {
     }
 
     private ProfileResponse toProfileResponse(
+            SupabasePrincipal principal,
             UserProfile profile,
             OnboardingProgress progress,
             FinancialPreferences preferences
@@ -158,6 +160,7 @@ public class ProfileService {
                 profile.getSupabaseUserId(),
                 profile.getEmail(),
                 profile.getDisplayName(),
+                principal.roles().stream().map(UserRole::name).collect(java.util.stream.Collectors.toUnmodifiableSet()),
                 profile.isOnboardingCompleted(),
                 profile.getOnboardingCompletedAt(),
                 new OnboardingProgressResponse(

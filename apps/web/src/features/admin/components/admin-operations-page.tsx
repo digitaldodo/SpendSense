@@ -1,0 +1,583 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  Activity,
+  Bell,
+  Clock3,
+  DatabaseZap,
+  MailCheck,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  ServerCog,
+  ShieldCheck,
+  TimerReset,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { AdminNotification, DeadLetterJob, ProviderDeliveryEvent, QueueHealth, WorkerQueue } from "@/features/admin/types";
+import {
+  useAdminAuditLogs,
+  useAdminOperationsOverview,
+  useDeadLetterJobs,
+  useProviderDeliveryEvents,
+  useRetryDeadLetterJob,
+  useRetryWorkerQueue,
+  useWorkerQueue,
+  useWorkerQueues,
+} from "@/features/admin/hooks/use-admin-operations";
+import { cn } from "@/lib/utils";
+
+const statuses = ["", "PENDING", "RUNNING", "RETRY_SCHEDULED", "DEAD_LETTER", "COMPLETED"] as const;
+
+export function AdminOperationsPage() {
+  const [status, setStatus] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [eventStatus, setEventStatus] = useState("");
+  const overviewQuery = useAdminOperationsOverview();
+  const queuesQuery = useWorkerQueues({ status, search });
+  const deadLettersQuery = useDeadLetterJobs(search);
+  const eventsQuery = useProviderDeliveryEvents({ status: eventStatus });
+  const auditQuery = useAdminAuditLogs();
+
+  const overview = overviewQuery.data;
+  const queues = useMemo(() => queuesQuery.data ?? [], [queuesQuery.data]);
+  const deadLetters = deadLettersQuery.data ?? [];
+  const providerEvents = eventsQuery.data ?? [];
+  const failedJobs = useMemo(
+    () => queues.filter((job) => job.status === "DEAD_LETTER" || job.status === "RETRY_SCHEDULED"),
+    [queues]
+  );
+
+  function refreshAll() {
+    overviewQuery.refetch();
+    queuesQuery.refetch();
+    deadLettersQuery.refetch();
+    eventsQuery.refetch();
+    auditQuery.refetch();
+  }
+
+  if (overviewQuery.isLoading && !overview) {
+    return <AdminLoading />;
+  }
+
+  return (
+    <main className="grid gap-5">
+      <section className="grid gap-4 rounded-lg border border-border bg-card p-5 shadow-raised lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="space-y-2">
+          <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-border bg-muted/55 px-3 py-1.5 text-sm font-medium text-muted-foreground">
+            <ShieldCheck className="size-4 text-primary" aria-hidden />
+            Admin operations
+          </div>
+          <h2 className="text-2xl font-semibold leading-tight sm:text-3xl">Delivery and worker monitoring</h2>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            Queue execution, provider delivery health, retry controls, and audit-safe operations in one focused view.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+          <StatusPill status={overview?.status ?? "WAITING"} />
+          <Button variant="outline" onClick={refreshAll}>
+            <RefreshCw className="size-4" aria-hidden />
+            Refresh
+          </Button>
+        </div>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          icon={<MailCheck className="size-5" />}
+          label="24h delivery success"
+          value={`${overview?.deliveryAnalytics.successRate ?? 100}%`}
+          detail={`${overview?.deliveryAnalytics.deliveredLast24h ?? 0} delivered of ${overview?.deliveryAnalytics.deliveriesLast24h ?? 0}`}
+        />
+        <MetricCard
+          icon={<TimerReset className="size-5" />}
+          label="Retry queue"
+          value={`${overview?.deliveryAnalytics.retryScheduled ?? 0}`}
+          detail={`${overview?.deliveryAnalytics.retryExhaustedLast24h ?? 0} exhausted in 24h`}
+        />
+        <MetricCard
+          icon={<Clock3 className="size-5" />}
+          label="Provider latency"
+          value={overview?.deliveryAnalytics.averageProviderLatencyMs ? `${overview.deliveryAnalytics.averageProviderLatencyMs}ms` : "Waiting"}
+          detail="Average from provider events"
+        />
+        <MetricCard
+          icon={<ServerCog className="size-5" />}
+          label="Worker runs"
+          value={`${overview?.recentJobs.length ?? 0}`}
+          detail={`Observed ${formatDateTime(overview?.observedAt)}`}
+        />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+        <QueueHealthPanel queues={overview?.queues ?? []} />
+        <ProviderStatusPanel providers={overview?.providers ?? []} notifications={overview?.notifications ?? []} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <Card className="rounded-lg border-border shadow-raised">
+          <CardHeader className="gap-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <CardTitle className="text-base">Worker and retry queue</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">Polling every 15 seconds; retry actions are audited.</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[10rem_1fr]">
+                <select
+                  className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value)}
+                >
+                  {statuses.map((item) => (
+                    <option key={item || "ALL"} value={item}>
+                      {item || "All statuses"}
+                    </option>
+                  ))}
+                </select>
+                <label className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                  <Input
+                    className="pl-9"
+                    placeholder="Search jobs, payloads, errors"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <QueueTable jobs={queues} failedJobs={failedJobs} onSelect={setSelectedJobId} />
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4">
+          <DeadLetterPanel jobs={deadLetters} onSelectQueueJob={setSelectedJobId} />
+          <AuditPanel auditLogs={auditQuery.data ?? []} />
+        </div>
+      </section>
+
+      <section className="grid gap-4">
+        <Card className="rounded-lg border-border shadow-raised">
+          <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle className="text-base">Provider delivery events</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">Send attempts, latency, provider errors, and fallback readiness.</p>
+            </div>
+            <select
+              className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              value={eventStatus}
+              onChange={(event) => setEventStatus(event.target.value)}
+            >
+              <option value="">All events</option>
+              <option value="DELIVERED">Delivered</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </CardHeader>
+          <CardContent>
+            <ProviderEventTable events={providerEvents} />
+          </CardContent>
+        </Card>
+      </section>
+
+      <JobDetailSheet jobId={selectedJobId} onOpenChange={(open) => !open && setSelectedJobId(null)} />
+    </main>
+  );
+}
+
+function QueueHealthPanel({ queues }: { queues: QueueHealth[] }) {
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader>
+        <CardTitle className="text-base">Queue health</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {queues.length === 0 ? (
+          <EmptyLine icon={<DatabaseZap className="size-5" />} text="No queue records yet." />
+        ) : (
+          queues.map((queue) => (
+            <div key={queue.queueName} className="grid gap-3 rounded-lg border border-border/70 bg-background/65 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold">{queue.queueName}</p>
+                  <StatusPill status={queue.deadLetter > 0 ? "DEGRADED" : queue.lagSeconds > 900 ? "CAUTION" : "OK"} compact />
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Lag {formatDuration(queue.lagSeconds)} · {queue.throughputLastHour} completed in the last hour
+                </p>
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <MiniCount label="Ready" value={queue.ready} />
+                <MiniCount label="Run" value={queue.running} />
+                <MiniCount label="Retry" value={queue.retryScheduled} />
+                <MiniCount label="DLQ" value={queue.deadLetter} />
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProviderStatusPanel({ providers, notifications }: { providers: { provider: string; status: string; successRate: number; failuresLast24h: number; averageLatencyMs?: number | null; lastEventAt?: string | null }[]; notifications: AdminNotification[] }) {
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle className="text-base">Provider status and notifications</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">Outage signals are based on recent provider event failure rates.</p>
+        </div>
+        <Bell className="size-5 text-primary" aria-hidden />
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <div className="grid gap-2">
+          {providers.length === 0 ? (
+            <EmptyLine icon={<MailCheck className="size-5" />} text="No provider events recorded yet." />
+          ) : (
+            providers.map((provider) => (
+              <div key={provider.provider} className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-background/65 px-3 py-2">
+                <div>
+                  <p className="text-sm font-semibold">{provider.provider}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {provider.successRate}% success · {provider.averageLatencyMs ?? "--"}ms avg
+                  </p>
+                </div>
+                <StatusPill status={provider.status} compact />
+              </div>
+            ))
+          )}
+        </div>
+        <div className="grid gap-2">
+          {notifications.length === 0 ? (
+            <EmptyLine icon={<ShieldCheck className="size-5" />} text="No admin notifications." />
+          ) : (
+            notifications.map((item) => (
+              <div key={item.id} className="grid gap-1 rounded-lg border border-border/70 bg-muted/25 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold">{item.title}</p>
+                  <StatusPill status={item.severity} compact />
+                </div>
+                <p className="text-xs leading-5 text-muted-foreground">{item.body}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function QueueTable({ jobs, failedJobs, onSelect }: { jobs: WorkerQueue[]; failedJobs: WorkerQueue[]; onSelect: (id: string) => void }) {
+  const retryQueue = useRetryWorkerQueue();
+  if (jobs.length === 0) {
+    return <EmptyLine icon={<ServerCog className="size-5" />} text="No queue jobs match the current filters." />;
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[760px] text-left text-sm">
+        <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="py-2 pr-3 font-medium">Job</th>
+            <th className="py-2 pr-3 font-medium">Status</th>
+            <th className="py-2 pr-3 font-medium">Attempts</th>
+            <th className="py-2 pr-3 font-medium">Scheduled</th>
+            <th className="py-2 pr-3 font-medium">Error</th>
+            <th className="py-2 text-right font-medium">Action</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/70">
+          {jobs.map((job) => {
+            const retryable = job.status === "DEAD_LETTER" || job.status === "RETRY_SCHEDULED";
+            const highlighted = failedJobs.some((item) => item.id === job.id);
+            return (
+              <tr key={job.id} className={cn("align-top", highlighted && "bg-warning/5")}>
+                <td className="py-3 pr-3">
+                  <button className="text-left font-semibold hover:text-primary" type="button" onClick={() => onSelect(job.id)}>
+                    {job.jobType}
+                  </button>
+                  <p className="mt-1 text-xs text-muted-foreground">{job.queueName}</p>
+                </td>
+                <td className="py-3 pr-3"><StatusPill status={job.status} compact /></td>
+                <td className="py-3 pr-3 tabular-nums">{job.attemptCount}/{job.maxAttempts}</td>
+                <td className="py-3 pr-3 text-muted-foreground">{formatDateTime(job.scheduledFor)}</td>
+                <td className="max-w-72 py-3 pr-3 text-xs text-muted-foreground">
+                  <span className="line-clamp-2">{job.lastErrorMessage ?? job.lastErrorCode ?? "None"}</span>
+                </td>
+                <td className="py-3 text-right">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!retryable || retryQueue.isPending}
+                    onClick={() => retryQueue.mutate({ jobId: job.id })}
+                  >
+                    <RotateCcw className="size-4" aria-hidden />
+                    Retry
+                  </Button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DeadLetterPanel({ jobs, onSelectQueueJob }: { jobs: DeadLetterJob[]; onSelectQueueJob: (id: string) => void }) {
+  const retryDeadLetter = useRetryDeadLetterJob();
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader>
+        <CardTitle className="text-base">Dead-letter queue</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-2">
+        {jobs.length === 0 ? (
+          <EmptyLine icon={<ShieldCheck className="size-5" />} text="No exhausted jobs." />
+        ) : (
+          jobs.slice(0, 8).map((job) => (
+            <div key={job.id} className="grid gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{job.jobType}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{job.failureMessage ?? job.failureCode ?? "Exhausted retries"}</p>
+                </div>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  title="Retry dead-letter job"
+                  disabled={retryDeadLetter.isPending}
+                  onClick={() => retryDeadLetter.mutate({ deadLetterId: job.id })}
+                >
+                  <RotateCcw className="size-4" aria-hidden />
+                </Button>
+              </div>
+              {job.workerQueueId ? (
+                <button className="w-fit text-xs font-medium text-primary" type="button" onClick={() => onSelectQueueJob(job.workerQueueId as string)}>
+                  Open linked queue job
+                </button>
+              ) : null}
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProviderEventTable({ events }: { events: ProviderDeliveryEvent[] }) {
+  if (events.length === 0) {
+    return <EmptyLine icon={<Activity className="size-5" />} text="Provider events will appear after delivery attempts." />;
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[720px] text-left text-sm">
+        <thead className="border-b border-border text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="py-2 pr-3 font-medium">Provider</th>
+            <th className="py-2 pr-3 font-medium">Status</th>
+            <th className="py-2 pr-3 font-medium">Latency</th>
+            <th className="py-2 pr-3 font-medium">Message</th>
+            <th className="py-2 pr-3 font-medium">Observed</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/70">
+          {events.map((event) => (
+            <tr key={event.id}>
+              <td className="py-3 pr-3 font-medium">{event.provider}</td>
+              <td className="py-3 pr-3"><StatusPill status={event.status} compact /></td>
+              <td className="py-3 pr-3 tabular-nums">{event.latencyMs ? `${event.latencyMs}ms` : "--"}</td>
+              <td className="max-w-80 py-3 pr-3 text-xs text-muted-foreground">
+                <span className="line-clamp-2">{event.errorMessage ?? event.providerMessageId ?? event.eventType}</span>
+              </td>
+              <td className="py-3 pr-3 text-muted-foreground">{formatDateTime(event.observedAt)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AuditPanel({ auditLogs }: { auditLogs: { id: string; action: string; actorEmail?: string | null; reason?: string | null; createdAt: string }[] }) {
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader>
+        <CardTitle className="text-base">Admin audit</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-2">
+        {auditLogs.length === 0 ? (
+          <EmptyLine icon={<ShieldCheck className="size-5" />} text="Privileged actions will appear here." />
+        ) : (
+          auditLogs.slice(0, 6).map((log) => (
+            <div key={log.id} className="rounded-lg border border-border/70 bg-background/65 px-3 py-2 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-semibold">{log.action.replaceAll("_", " ").toLowerCase()}</span>
+                <span className="text-xs text-muted-foreground">{formatDateTime(log.createdAt)}</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{log.actorEmail ?? "Admin"} · {log.reason ?? "No reason provided"}</p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function JobDetailSheet({ jobId, onOpenChange }: { jobId: string | null; onOpenChange: (open: boolean) => void }) {
+  const jobQuery = useWorkerQueue(jobId);
+  const job = jobQuery.data;
+  return (
+    <Sheet open={Boolean(jobId)} onOpenChange={onOpenChange}>
+      <SheetContent className="w-[92vw] overflow-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Job detail</SheetTitle>
+          <SheetDescription>Queue state, retry history fields, payload, and latest worker error.</SheetDescription>
+        </SheetHeader>
+        {!job ? (
+          <div className="grid gap-3 p-4">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : (
+          <div className="grid gap-4 px-4 pb-4">
+            <div className="grid gap-2 rounded-lg border border-border bg-background/65 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold">{job.jobType}</p>
+                <StatusPill status={job.status} compact />
+              </div>
+              <p className="text-xs text-muted-foreground">{job.id}</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <DetailLine label="Queue" value={job.queueName} />
+              <DetailLine label="Attempts" value={`${job.attemptCount}/${job.maxAttempts}`} />
+              <DetailLine label="Scheduled" value={formatDateTime(job.scheduledFor)} />
+              <DetailLine label="Latency" value={job.latencyMs ? `${job.latencyMs}ms` : "Pending"} />
+              <DetailLine label="Locked by" value={job.lockedBy ?? "Not locked"} />
+              <DetailLine label="Trace" value={job.traceId ?? "None"} />
+            </div>
+            <div className="grid gap-2 rounded-lg border border-border bg-muted/25 p-3">
+              <p className="text-sm font-semibold">Latest error</p>
+              <p className="text-sm leading-6 text-muted-foreground">{job.lastErrorMessage ?? job.lastErrorCode ?? "No recorded error."}</p>
+            </div>
+            <div className="grid gap-2">
+              <p className="text-sm font-semibold">Payload</p>
+              <pre className="max-h-80 overflow-auto rounded-lg border border-border bg-foreground/[0.03] p-3 text-xs leading-5">
+                {prettyJson(job.payloadJson)}
+              </pre>
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function MetricCard({ icon, label, value, detail }: { icon: ReactNode; label: string; value: string; detail: string }) {
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardContent className="flex items-start justify-between gap-4 p-4">
+        <div>
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+        </div>
+        <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">{icon}</span>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatusPill({ status, compact = false }: { status: string; compact?: boolean }) {
+  const normalized = status.toUpperCase();
+  const tone =
+    normalized === "OK" || normalized === "DELIVERED" || normalized === "COMPLETED"
+      ? "bg-success/15 text-success"
+      : normalized === "ACTION" || normalized === "DEGRADED" || normalized === "FAILED" || normalized === "DEAD_LETTER"
+        ? "bg-warning/15 text-warning"
+        : "bg-primary/10 text-primary";
+  return (
+    <span className={cn("inline-flex h-7 items-center rounded-lg px-2.5 text-xs font-semibold", tone, compact && "h-6 px-2")}>
+      {normalized.replaceAll("_", " ").toLowerCase()}
+    </span>
+  );
+}
+
+function MiniCount({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="min-w-14 rounded-lg border border-border/70 bg-card px-2 py-1.5">
+      <p className="font-semibold tabular-nums">{value}</p>
+      <p className="mt-0.5 text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function DetailLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/70 bg-background/65 p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
+function EmptyLine({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+      <span className="text-primary">{icon}</span>
+      {text}
+    </div>
+  );
+}
+
+function AdminLoading() {
+  return (
+    <div className="grid gap-4">
+      <Skeleton className="h-36 w-full" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
+      </div>
+      <Skeleton className="h-96 w-full" />
+    </div>
+  );
+}
+
+function prettyJson(value: string) {
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2);
+  } catch {
+    return value;
+  }
+}
+
+function formatDuration(seconds: number) {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  if (seconds < 3600) {
+    return `${Math.round(seconds / 60)}m`;
+  }
+  return `${Math.round(seconds / 3600)}h`;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "Waiting";
+  }
+  return new Date(value).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

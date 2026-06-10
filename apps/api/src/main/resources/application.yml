@@ -17,6 +17,17 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -38,6 +49,23 @@ spendsense:
       - ${WEB_ORIGIN:http://localhost:3000}
   demo:
     enabled: ${SPENDSENSE_DEMO_ENABLED:false}
+  delivery:
+    worker:
+      batch-size: ${SPENDSENSE_WORKER_BATCH_SIZE:100}
+      retry-delay-seconds: ${SPENDSENSE_WORKER_RETRY_DELAY_SECONDS:300}
+      lock-ttl-seconds: ${SPENDSENSE_WORKER_LOCK_TTL_SECONDS:120}
+      cleanup-retention-days: ${SPENDSENSE_WORKER_CLEANUP_RETENTION_DAYS:30}
+    email:
+      primary-provider: ${SPENDSENSE_EMAIL_PRIMARY_PROVIDER:RESEND}
+      resend:
+        enabled: ${RESEND_ENABLED:false}
+        api-key: ${RESEND_API_KEY:}
+        from-email: ${RESEND_FROM_EMAIL:no-reply@spendsense.local}
+        from-name: ${RESEND_FROM_NAME:SpendSense}
+      smtp:
+        enabled: ${SMTP_ENABLED:false}
+        from-email: ${SMTP_FROM_EMAIL:no-reply@spendsense.local}
+        from-name: ${SMTP_FROM_NAME:SpendSense}
 
 management:
   endpoints:
