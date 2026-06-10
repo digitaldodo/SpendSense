@@ -7,6 +7,8 @@ import type { ApiResponse } from "@/types/api";
 import type {
   Account,
   AccountMergePayload,
+  AffordabilityScenario,
+  AffordabilityScenarioPayload,
   BalanceCorrectionPayload,
   Budget,
   BudgetHistory,
@@ -20,9 +22,12 @@ import type {
   DashboardFinanceSummary,
   DemoSeedResult,
   FinancialInsights,
+  FinancialHealthBreakdown,
+  FinancialProjection,
   GeneratedReport,
   GoalContributionPayload,
   PageResponse,
+  ProjectionPayload,
   SavingsGoal,
   SavingsGoalPayload,
   Transaction,
@@ -211,6 +216,35 @@ export async function getFinancialInsights(filters: { from?: string; to?: string
   const query = toSearchParams(filters);
   const response = await authenticatedApiClient<ApiResponse<FinancialInsights>>(
     `/api/v1/insights${query ? `?${query}` : ""}`
+  );
+  return response.data;
+}
+
+export async function getFinancialHealthBreakdown() {
+  const response = await authenticatedApiClient<ApiResponse<FinancialHealthBreakdown>>(
+    "/api/v1/financial-guidance/health"
+  );
+  return response.data;
+}
+
+export async function simulateAffordability(payload: AffordabilityScenarioPayload) {
+  const response = await authenticatedApiClient<ApiResponse<AffordabilityScenario>>(
+    "/api/v1/financial-guidance/affordability-scenarios",
+    {
+      method: "POST",
+      body: payload,
+    }
+  );
+  return response.data;
+}
+
+export async function calculateProjection(payload: ProjectionPayload = {}) {
+  const response = await authenticatedApiClient<ApiResponse<FinancialProjection>>(
+    "/api/v1/financial-guidance/projections",
+    {
+      method: "POST",
+      body: payload,
+    }
   );
   return response.data;
 }

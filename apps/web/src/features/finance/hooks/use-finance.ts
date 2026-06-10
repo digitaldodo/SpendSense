@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import {
   addGoalContribution,
   bulkUpdateTransactions,
+  calculateProjection,
   correctAccountBalance,
   createBudget,
   createCategory,
@@ -16,6 +17,7 @@ import {
   getCategories,
   getDashboardFinanceSummary,
   getFinancialInsights,
+  getFinancialHealthBreakdown,
   getMonthlyReport,
   getSavingsGoals,
   getTransactionDetail,
@@ -24,6 +26,7 @@ import {
   mergeCategory,
   mergeAccount,
   seedDemoFinanceData,
+  simulateAffordability,
   updateBudget,
   updateCategory,
   updateSavingsGoal,
@@ -31,12 +34,14 @@ import {
 } from "@/features/finance/services/finance-api";
 import type {
   AccountMergePayload,
+  AffordabilityScenarioPayload,
   BalanceCorrectionPayload,
   BudgetPayload,
   BulkTransactionActionPayload,
   CategoryMergePayload,
   CategoryPayload,
   GoalContributionPayload,
+  ProjectionPayload,
   SavingsGoalPayload,
   TransactionFilters,
   TransactionUpdatePayload,
@@ -49,6 +54,7 @@ export const budgetsQueryKey = ["finance", "budgets"] as const;
 export const budgetHistoryQueryKey = ["finance", "budgets", "history"] as const;
 export const savingsGoalsQueryKey = ["finance", "goals"] as const;
 export const insightsQueryKey = ["finance", "insights"] as const;
+export const financialHealthBreakdownQueryKey = ["finance", "financial-health-breakdown"] as const;
 export const monthlyReportQueryKey = ["finance", "reports", "monthly"] as const;
 
 export function useDashboardFinanceSummary() {
@@ -100,6 +106,25 @@ export function useFinancialInsights(filters: { from?: string; to?: string } = {
   return useQuery({
     queryKey: [...insightsQueryKey, filters],
     queryFn: () => getFinancialInsights(filters),
+  });
+}
+
+export function useFinancialHealthBreakdown() {
+  return useQuery({
+    queryKey: financialHealthBreakdownQueryKey,
+    queryFn: getFinancialHealthBreakdown,
+  });
+}
+
+export function useAffordabilityScenario() {
+  return useMutation({
+    mutationFn: (payload: AffordabilityScenarioPayload) => simulateAffordability(payload),
+  });
+}
+
+export function useProjection() {
+  return useMutation({
+    mutationFn: (payload: ProjectionPayload) => calculateProjection(payload),
   });
 }
 

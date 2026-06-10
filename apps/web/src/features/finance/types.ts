@@ -174,6 +174,36 @@ export type FinancialHealth = {
   overspendingFrequency: number;
 };
 
+export type FinancialHealthIndicator = {
+  key: string;
+  label: string;
+  state: BudgetState;
+  value: number;
+  benchmark: number;
+  monthlyChange: number;
+  explanation: string;
+  actionHint: string;
+};
+
+export type FinancialHealthTrendPoint = {
+  periodStart: string;
+  income: number;
+  expense: number;
+  netCashflow: number;
+  savingsRate: number;
+  score: number;
+  state: BudgetState;
+};
+
+export type FinancialHealthBreakdown = {
+  generatedAt: string;
+  state: BudgetState;
+  score: number;
+  headline: string;
+  indicators: FinancialHealthIndicator[];
+  trendHistory: FinancialHealthTrendPoint[];
+};
+
 export type SavingsMomentum = {
   monthNetSavings: number;
   goalContributionsThisMonth: number;
@@ -496,6 +526,71 @@ export type BudgetRollover = {
   spentAmount: number;
   rolloverAmount: number;
   state: string;
+};
+
+export type CashflowImpactPoint = {
+  monthStart: string;
+  baselineFreeCashflow: number;
+  simulatedFreeCashflow: number;
+  projectedSavingsBalance: number;
+};
+
+export type AffordabilityScenarioPayload = {
+  purchaseAmount: number;
+  downPayment?: number;
+  annualInterestRate: number;
+  tenureMonths: number;
+  existingMonthlyEmis?: number;
+  goalId?: string;
+  currency?: string;
+};
+
+export type AffordabilityScenario = {
+  scenarioId: string;
+  generatedAt: string;
+  state: BudgetState;
+  explanation: string;
+  purchaseAmount: number;
+  downPayment: number;
+  financedAmount: number;
+  monthlyEmi: number;
+  totalInterest: number;
+  totalPayment: number;
+  safeEmiLimit: number;
+  freeCashflowBefore: number;
+  freeCashflowAfter: number;
+  cashflowReductionPercent: number;
+  savingsImpactOverTenure: number;
+  goalDelayMonths?: number | null;
+  delayedGoalName?: string | null;
+  cashflowProjection: CashflowImpactPoint[];
+};
+
+export type ProjectionPayload = {
+  months?: number;
+  monthlySavingsOverride?: number;
+  emergencyMonthlyExpenseOverride?: number;
+};
+
+export type ProjectionPoint = {
+  monthStart: string;
+  projectedBalance: number;
+  cumulativeSavings: number;
+  emergencyRunwayMonths: number;
+};
+
+export type FinancialProjection = {
+  projectionId: string;
+  generatedAt: string;
+  state: BudgetState;
+  currentBalance: number;
+  monthlySavings: number;
+  averageMonthlyExpense: number;
+  emergencyRunwayMonths: number;
+  fireStyleTarget: number;
+  monthsToFireStyleTarget?: number | null;
+  trajectory: ProjectionPoint[];
+  notes: string[];
 };
 
 export type DashboardFinanceSummary = {
