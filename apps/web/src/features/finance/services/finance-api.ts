@@ -1,6 +1,8 @@
 "use client";
 
 import { authenticatedApiClient } from "@/services/api/authenticated-client";
+import { env } from "@/config/env";
+import { getSupabaseBrowserClient } from "@/features/auth/services/auth-client";
 import type { ApiResponse } from "@/types/api";
 import type {
   Account,
@@ -14,8 +16,11 @@ import type {
   Category,
   CategoryMergePayload,
   CategoryPayload,
+  BudgetRollover,
   DashboardFinanceSummary,
   DemoSeedResult,
+  FinancialInsights,
+  GeneratedReport,
   GoalContributionPayload,
   PageResponse,
   SavingsGoal,
@@ -200,6 +205,53 @@ export async function getDashboardFinanceSummary() {
     "/api/v1/transactions/dashboard-summary"
   );
   return response.data;
+}
+
+export async function getFinancialInsights(filters: { from?: string; to?: string } = {}) {
+  const query = toSearchParams(filters);
+  const response = await authenticatedApiClient<ApiResponse<FinancialInsights>>(
+    `/api/v1/insights${query ? `?${query}` : ""}`
+  );
+  return response.data;
+}
+
+export async function getMonthlyReport(month?: string) {
+  const response = await authenticatedApiClient<ApiResponse<GeneratedReport>>(
+    `/api/v1/reports/monthly${month ? `?month=${encodeURIComponent(month)}` : ""}`
+  );
+  return response.data;
+}
+
+export async function materializeBudgetRollovers() {
+  const response = await authenticatedApiClient<ApiResponse<BudgetRollover[]>>(
+    "/api/v1/insights/rollovers/materialize",
+    {
+      method: "POST",
+    }
+  );
+  return response.data;
+}
+
+export async function downloadReportExport(path: string) {
+  const supabase = getSupabaseBrowserClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const headers = new Headers();
+  if (session?.access_token) {
+    headers.set("Authorization", `Bearer ${session.access_token}`);
+  }
+  const response = await fetch(`${env.NEXT_PUBLIC_API_BASE_URL}${path}`, { headers });
+  if (!response.ok) {
+    throw new Error("Report export failed.");
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+  return {
+    blob,
+    filename: match?.[1] ?? "spendsense-report",
+  };
 }
 
 export async function seedDemoFinanceData() {

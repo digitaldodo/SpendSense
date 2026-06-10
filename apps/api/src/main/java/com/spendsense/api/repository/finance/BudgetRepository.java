@@ -17,6 +17,9 @@ public interface BudgetRepository extends JpaRepository<Budget, UUID> {
     List<Budget> findByUserProfileIdAndActiveTrueOrderByStartsOnDescCreatedAtDesc(UUID userProfileId);
 
     @EntityGraph(attributePaths = "category")
+    List<Budget> findByUserProfileIdAndActiveTrueAndRolloverEnabledTrueOrderByStartsOnDescCreatedAtDesc(UUID userProfileId);
+
+    @EntityGraph(attributePaths = "category")
     Optional<Budget> findByIdAndUserProfileId(UUID id, UUID userProfileId);
 
     @Modifying

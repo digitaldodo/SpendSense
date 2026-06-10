@@ -15,9 +15,12 @@ import {
   getBudgets,
   getCategories,
   getDashboardFinanceSummary,
+  getFinancialInsights,
+  getMonthlyReport,
   getSavingsGoals,
   getTransactionDetail,
   getTransactions,
+  materializeBudgetRollovers,
   mergeCategory,
   mergeAccount,
   seedDemoFinanceData,
@@ -45,6 +48,8 @@ export const categoriesQueryKey = ["finance", "categories"] as const;
 export const budgetsQueryKey = ["finance", "budgets"] as const;
 export const budgetHistoryQueryKey = ["finance", "budgets", "history"] as const;
 export const savingsGoalsQueryKey = ["finance", "goals"] as const;
+export const insightsQueryKey = ["finance", "insights"] as const;
+export const monthlyReportQueryKey = ["finance", "reports", "monthly"] as const;
 
 export function useDashboardFinanceSummary() {
   return useQuery({
@@ -85,6 +90,30 @@ export function useSavingsGoals() {
   return useQuery({
     queryKey: savingsGoalsQueryKey,
     queryFn: getSavingsGoals,
+  });
+}
+
+export function useFinancialInsights(filters: { from?: string; to?: string } = {}) {
+  return useQuery({
+    queryKey: [...insightsQueryKey, filters],
+    queryFn: () => getFinancialInsights(filters),
+  });
+}
+
+export function useMonthlyReport(month?: string) {
+  return useQuery({
+    queryKey: [...monthlyReportQueryKey, month],
+    queryFn: () => getMonthlyReport(month),
+  });
+}
+
+export function useMaterializeBudgetRollovers() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: materializeBudgetRollovers,
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: ["finance"] });
+    },
   });
 }
 

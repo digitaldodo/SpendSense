@@ -30,6 +30,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID>,
 
     List<Transaction> findByIdInAndUserProfileId(List<UUID> ids, UUID userProfileId);
 
+    @EntityGraph(attributePaths = {"account", "category"})
+    @Query("""
+            select t
+            from Transaction t
+            where t.userProfile.id = :userProfileId
+              and t.status <> com.spendsense.api.domain.finance.TransactionStatus.EXCLUDED
+              and t.occurredAt >= :from
+              and t.occurredAt < :to
+            order by t.occurredAt asc
+            """)
+    List<Transaction> findPostedBetween(UUID userProfileId, Instant from, Instant to);
+
     @Modifying
     @Query("update Transaction t set t.account = :targetAccount where t.userProfile.id = :userProfileId and t.account.id = :sourceAccountId")
     int moveTransactionsToAccount(UUID userProfileId, UUID sourceAccountId, Account targetAccount);

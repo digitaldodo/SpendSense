@@ -21,6 +21,7 @@ public record DashboardFinanceSummaryResponse(
         List<SavingsGoalResponse> savingsGoals,
         FinancialHealthResponse financialHealth,
         SavingsMomentumResponse savingsMomentum,
-        List<CategoryTrendResponse> categoryTrends
+        List<CategoryTrendResponse> categoryTrends,
+        DashboardInsightSummaryResponse insightSummary
 ) {
 }

@@ -189,6 +189,151 @@ export type CategoryTrend = {
   total: number;
 };
 
+export type ReportSummary = {
+  income: number;
+  expense: number;
+  netCashflow: number;
+  savingsRate: number;
+  recurringSpend: number;
+  anomalySpend: number;
+};
+
+export type DeterministicInsight = {
+  type: string;
+  state: BudgetState;
+  title: string;
+  body: string;
+  primaryValue: number;
+  comparisonValue: number;
+  actionLabel: string;
+};
+
+export type RecurringPattern = {
+  categoryId?: string | null;
+  categoryName: string;
+  merchantName: string;
+  merchantNormalized: string;
+  amount: number;
+  currency: string;
+  cadence: string;
+  occurrenceCount: number;
+  firstSeenOn: string;
+  lastSeenOn: string;
+  nextExpectedOn?: string | null;
+  confidence: number;
+  subscription: boolean;
+};
+
+export type SpendingAnomaly = {
+  categoryId?: string | null;
+  categoryName: string;
+  state: BudgetState;
+  currentSpend: number;
+  baselineSpend: number;
+  changePercent: number;
+  absoluteChange: number;
+  message: string;
+};
+
+export type MonthlyComparison = {
+  periodStart: string;
+  income: number;
+  expense: number;
+  netCashflow: number;
+  incomeChange: number;
+  expenseChange: number;
+  expenseChangePercent: number;
+  savingsRate: number;
+};
+
+export type CategoryTrendInsight = {
+  categoryId?: string | null;
+  categoryName: string;
+  colorToken: string;
+  currentSpend: number;
+  previousAverage: number;
+  changePercent: number;
+  direction: "UP" | "DOWN" | "FLAT";
+  state: BudgetState;
+};
+
+export type SavingsTrajectory = {
+  periodStart: string;
+  netSavings: number;
+  savingsRate: number;
+  cumulativeSavings: number;
+};
+
+export type IncomeStability = {
+  state: BudgetState | "WAITING";
+  averageIncome: number;
+  averageDeviation: number;
+  stabilityScore: number;
+  monthsReviewed: number;
+};
+
+export type CategoryDeepDive = {
+  categoryId?: string | null;
+  categoryName: string;
+  colorToken: string;
+  totalSpend: number;
+  averageMonthlySpend: number;
+  latestMonthSpend: number;
+  trendPercent: number;
+  monthlyValues: MonthlyComparison[];
+};
+
+export type FinancialInsights = {
+  generatedAt: string;
+  periodStart: string;
+  periodEnd: string;
+  periodLabel: string;
+  summary: ReportSummary;
+  insights: DeterministicInsight[];
+  anomalies: SpendingAnomaly[];
+  recurringTransactions: RecurringPattern[];
+  subscriptions: RecurringPattern[];
+  monthlyComparisons: MonthlyComparison[];
+  categoryTrends: CategoryTrendInsight[];
+  savingsTrajectory: SavingsTrajectory[];
+  incomeStability: IncomeStability;
+  categoryDeepDives: CategoryDeepDive[];
+};
+
+export type DashboardInsightSummary = {
+  recurringCount: number;
+  subscriptionCount: number;
+  subscriptionSpend: number;
+  spendingSpikeCount: number;
+  monthOverMonthExpenseChangePercent: number;
+  largestExpenseChangeCategory: string;
+  incomeConsistencyState: string;
+  savingsTrendState: string;
+};
+
+export type GeneratedReport = {
+  reportId: string;
+  reportType: string;
+  format: string;
+  generatedAt: string;
+  insights: FinancialInsights;
+  categoryBreakdown: CategorySpend[];
+};
+
+export type BudgetRollover = {
+  budgetId: string;
+  budgetName: string;
+  categoryName: string;
+  sourcePeriodStart: string;
+  sourcePeriodEnd: string;
+  targetPeriodStart: string;
+  targetPeriodEnd: string;
+  originalAmount: number;
+  spentAmount: number;
+  rolloverAmount: number;
+  state: string;
+};
+
 export type DashboardFinanceSummary = {
   accountCount: number;
   transactionCount: number;
@@ -208,6 +353,7 @@ export type DashboardFinanceSummary = {
   financialHealth: FinancialHealth;
   savingsMomentum: SavingsMomentum;
   categoryTrends: CategoryTrend[];
+  insightSummary: DashboardInsightSummary;
 };
 
 export type DemoSeedResult = {

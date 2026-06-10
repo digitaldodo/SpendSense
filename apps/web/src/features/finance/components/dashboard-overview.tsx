@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import type { ComponentType, FormEvent, ReactNode } from "react";
 import {
+  Activity,
   ArrowLeft,
   ArrowRight,
+  BarChart3,
   CheckCircle2,
   CircleDollarSign,
   Edit3,
@@ -16,6 +18,7 @@ import {
   PiggyBank,
   Plus,
   ReceiptText,
+  Repeat2,
   Search,
   ShieldCheck,
   Target,
@@ -159,6 +162,8 @@ export function DashboardOverview() {
         />
       </section>
 
+      <DashboardInsightStrip summary={summary} />
+
       <PlanningWorkspace summary={summary} />
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
@@ -209,6 +214,73 @@ export function DashboardOverview() {
 
       <TransactionExplorer />
     </main>
+  );
+}
+
+function DashboardInsightStrip({ summary }: { summary: DashboardFinanceSummary }) {
+  const insight = summary.insightSummary;
+  return (
+    <section className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <InsightMiniCard
+          icon={Repeat2}
+          label="Subscriptions"
+          value={`${insight.subscriptionCount}`}
+          detail={formatMoney(insight.subscriptionSpend)}
+        />
+        <InsightMiniCard
+          icon={Activity}
+          label="Spikes"
+          value={`${insight.spendingSpikeCount}`}
+          detail="This range"
+        />
+        <InsightMiniCard
+          icon={TrendingUp}
+          label="MoM spend"
+          value={`${Math.round(insight.monthOverMonthExpenseChangePercent)}%`}
+          detail="Expense change"
+        />
+        <InsightMiniCard
+          icon={CircleDollarSign}
+          label="Income"
+          value={stateLabelForInsight(insight.incomeConsistencyState)}
+          detail="Consistency"
+        />
+        <InsightMiniCard
+          icon={PiggyBank}
+          label="Savings"
+          value={insight.savingsTrendState.toLowerCase()}
+          detail={insight.largestExpenseChangeCategory}
+        />
+      </div>
+      <Button className="w-full lg:w-fit" variant="outline" render={<Link href="/insights" />}>
+        <BarChart3 className="size-4" aria-hidden />
+        Insights
+      </Button>
+    </section>
+  );
+}
+
+function InsightMiniCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+}: {
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3 shadow-raised">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Icon className="size-4 text-primary" aria-hidden />
+        {label}
+      </div>
+      <p className="mt-2 truncate text-base font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 truncate text-xs text-muted-foreground">{detail}</p>
+    </div>
   );
 }
 
@@ -1136,6 +1208,19 @@ function stateLabel(state: "HEALTHY" | "CAUTION" | "RISK") {
     return "Caution";
   }
   return "Needs attention";
+}
+
+function stateLabelForInsight(state: string) {
+  if (state === "HEALTHY") {
+    return "steady";
+  }
+  if (state === "CAUTION") {
+    return "watch";
+  }
+  if (state === "RISK") {
+    return "review";
+  }
+  return "waiting";
 }
 
 function stateFillClass(state?: "HEALTHY" | "CAUTION" | "RISK") {
