@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { SpendSenseLogo } from "@/components/brand/spendsense-logo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { env } from "@/config/env";
 import { LogoutButton } from "@/features/auth/components/logout-button";
@@ -83,14 +84,12 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       <div className="grid min-h-screen lg:grid-cols-[17rem_1fr]">
         <aside className="sticky top-0 hidden h-screen border-r border-border/70 bg-card/72 px-4 py-5 backdrop-blur lg:block">
           <div className="flex h-full flex-col">
-            <Link href="/dashboard" className="flex items-center gap-3 px-2">
-              <span className="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-                <Sparkles className="size-4" aria-hidden />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">SpendSense</span>
-                <span className="block text-xs text-muted-foreground">Private money OS</span>
-              </span>
+            <Link
+              href="/dashboard"
+              className="group/logo flex items-center rounded-lg px-2 py-1 transition-colors hover:bg-muted/55"
+              aria-label="SpendSense dashboard"
+            >
+              <SpendSenseLogo size="sm" subtitle="Private money OS" priority />
             </Link>
 
             <nav className="mt-8 grid gap-1" aria-label="Primary">
@@ -142,7 +141,9 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             </div>
             <div className="mt-3 rounded-lg border border-border/70 bg-background/55 p-3 text-xs text-muted-foreground">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-medium uppercase tracking-normal">{env.NEXT_PUBLIC_APP_ENV}</span>
+                <span className="font-medium uppercase tracking-normal">
+                  {env.NEXT_PUBLIC_APP_ENV}
+                </span>
                 <span className="font-mono">{env.NEXT_PUBLIC_APP_VERSION}</span>
               </div>
               <p className="mt-1 truncate font-mono">{env.NEXT_PUBLIC_RELEASE_COMMIT}</p>
@@ -154,6 +155,13 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
           <header className="sticky top-0 z-20 border-b border-border/70 bg-background/82 backdrop-blur">
             <div className="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="group/logo -ml-1 grid size-10 place-items-center rounded-lg transition-colors hover:bg-muted lg:hidden"
+                  aria-label="SpendSense dashboard"
+                >
+                  <SpendSenseLogo variant="mark" size="sm" />
+                </Link>
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium text-muted-foreground">
                     Protected workspace

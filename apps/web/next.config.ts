@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
       },
       {
-        source: "/icons/:path*",
+        source: "/:assetFolder(icons|brand)/:path*",
         headers: [
           {
             key: "Cache-Control",
@@ -55,7 +55,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-const sentryUploadEnabled = Boolean(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT);
+const sentryUploadEnabled = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+);
 
 export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,

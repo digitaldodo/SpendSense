@@ -1,7 +1,13 @@
-const CACHE_VERSION = "spendsense-v14";
+const CACHE_VERSION = "spendsense-v15";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const NAVIGATION_CACHE = `${CACHE_VERSION}-navigation`;
-const STATIC_ASSETS = ["/", "/offline", "/manifest.webmanifest", "/icons/icon.svg"];
+const STATIC_ASSETS = [
+  "/",
+  "/offline",
+  "/manifest.webmanifest",
+  "/brand/spendsense-app-icon-192.png",
+  "/brand/spendsense-mark-512.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -46,6 +52,7 @@ self.addEventListener("fetch", (event) => {
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
+    url.pathname.startsWith("/brand/") ||
     url.pathname === "/manifest.webmanifest"
   ) {
     event.respondWith(cacheFirst(request));

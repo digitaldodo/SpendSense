@@ -2,10 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch, type FieldPath } from "react-hook-form";
+import { SpendSenseLogo } from "@/components/brand/spendsense-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormError } from "@/components/feedback/form-error";
@@ -180,7 +181,7 @@ export function OnboardingFlow() {
         <aside className="hidden lg:block">
           <div className="max-w-sm space-y-6">
             <div className="inline-flex items-center gap-2 rounded-lg border border-border/70 bg-card/70 px-3 py-1.5 text-sm font-medium text-muted-foreground shadow-raised backdrop-blur">
-              <Sparkles className="size-4 text-primary" aria-hidden />
+              <SpendSenseLogo variant="mark" size="xs" />
               SpendSense profile
             </div>
             <div className="space-y-4">
@@ -231,7 +232,9 @@ export function OnboardingFlow() {
                       variant="outline"
                       className="h-10 gap-2"
                       onClick={goBack}
-                      disabled={currentStep === 0 || saveProgress.isPending || completeOnboarding.isPending}
+                      disabled={
+                        currentStep === 0 || saveProgress.isPending || completeOnboarding.isPending
+                      }
                     >
                       <ArrowLeft className="size-4" aria-hidden />
                       Back
@@ -282,7 +285,10 @@ export function OnboardingFlow() {
           >
             <div className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
               <p>We will save your progress quietly, so you can leave and continue later.</p>
-              <p>Your answers become profile preferences only. Analytics and advice arrive in later phases.</p>
+              <p>
+                Your answers become profile preferences only. Analytics and advice arrive in later
+                phases.
+              </p>
             </div>
           </StepIntro>
         );
@@ -299,7 +305,9 @@ export function OnboardingFlow() {
                   key={option.value}
                   {...option}
                   selected={watchedValues.salaryRange === option.value}
-                  onSelect={(value) => form.setValue("salaryRange", value, { shouldDirty: true, shouldValidate: true })}
+                  onSelect={(value) =>
+                    form.setValue("salaryRange", value, { shouldDirty: true, shouldValidate: true })
+                  }
                 />
               ))}
             </OptionGrid>
@@ -319,7 +327,12 @@ export function OnboardingFlow() {
                   key={option.value}
                   {...option}
                   selected={watchedValues.employmentType === option.value}
-                  onSelect={(value) => form.setValue("employmentType", value, { shouldDirty: true, shouldValidate: true })}
+                  onSelect={(value) =>
+                    form.setValue("employmentType", value, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
                 />
               ))}
             </OptionGrid>
@@ -403,7 +416,9 @@ export function OnboardingFlow() {
                   key={option.value}
                   {...option}
                   selected={watchedValues.riskComfort === option.value}
-                  onSelect={(value) => form.setValue("riskComfort", value, { shouldDirty: true, shouldValidate: true })}
+                  onSelect={(value) =>
+                    form.setValue("riskComfort", value, { shouldDirty: true, shouldValidate: true })
+                  }
                 />
               ))}
             </div>
@@ -418,8 +433,14 @@ export function OnboardingFlow() {
             description="Next you will enter a quiet dashboard shell. The heavier financial tools are still intentionally out of scope."
           >
             <div className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-              <SummaryRow label="Income" value={labelFor(salaryRangeOptions, form.getValues("salaryRange"))} />
-              <SummaryRow label="Employment" value={labelFor(employmentTypeOptions, form.getValues("employmentType"))} />
+              <SummaryRow
+                label="Income"
+                value={labelFor(salaryRangeOptions, form.getValues("salaryRange"))}
+              />
+              <SummaryRow
+                label="Employment"
+                value={labelFor(employmentTypeOptions, form.getValues("employmentType"))}
+              />
               <SummaryRow label="Goals" value={`${watchedGoals.length || 0} selected`} />
               <SummaryRow label="Habits" value={`${watchedHabits.length || 0} selected`} />
             </div>
@@ -444,8 +465,12 @@ function StepIntro({
     <div className="space-y-5">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-normal text-primary">{eyebrow}</p>
-        <h2 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{title}</h2>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">{description}</p>
+        <h2 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
+          {title}
+        </h2>
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+          {description}
+        </p>
       </div>
       {children}
     </div>
@@ -476,7 +501,8 @@ function buildPayload(
     salaryRange: values.salaryRange,
     employmentType: values.employmentType,
     monthlyFixedExpenses:
-      typeof values.monthlyFixedExpenses === "number" && Number.isFinite(values.monthlyFixedExpenses)
+      typeof values.monthlyFixedExpenses === "number" &&
+      Number.isFinite(values.monthlyFixedExpenses)
         ? values.monthlyFixedExpenses
         : undefined,
     goals: values.goals,

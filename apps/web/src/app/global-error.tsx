@@ -2,6 +2,7 @@
 
 import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
+import { SpendSenseLogo } from "@/components/brand/spendsense-logo";
 import { Button } from "@/components/ui/button";
 import { logClientEvent } from "@/lib/client-logger";
 import "./globals.css";
@@ -28,7 +29,10 @@ export default function GlobalError({
       <body>
         <main className="container-app grid min-h-screen place-items-center py-section-y">
           <section className="grid max-w-md gap-4 rounded-lg border border-border bg-card p-6 text-center shadow-raised">
-            <AlertTriangle className="mx-auto size-8 text-primary" aria-hidden />
+            <div className="mx-auto grid justify-items-center gap-2">
+              <SpendSenseLogo variant="mark" size="lg" priority />
+              <AlertTriangle className="size-5 text-muted-foreground" aria-hidden />
+            </div>
             <div className="space-y-2">
               <h1 className="text-2xl font-semibold">SpendSense needs a quick refresh.</h1>
               <p className="text-sm leading-6 text-muted-foreground">
