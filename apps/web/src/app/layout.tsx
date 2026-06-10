@@ -4,6 +4,8 @@ import { AppProviders } from "@/providers/app-providers";
 import "./globals.css";
 
 const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://spendsense.app");
+const appEnv = process.env.NEXT_PUBLIC_APP_ENV ?? "local";
+const allowSearchIndexing = appEnv === "production" || appEnv === "local" || appEnv === "development";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -45,8 +47,8 @@ export const metadata: Metadata = {
     ],
   },
   robots: {
-    index: process.env.NEXT_PUBLIC_APP_ENV === "production",
-    follow: process.env.NEXT_PUBLIC_APP_ENV === "production",
+    index: allowSearchIndexing,
+    follow: allowSearchIndexing,
   },
   twitter: {
     card: "summary_large_image",
@@ -71,6 +73,7 @@ export default function RootLayout({
     <html
       lang="en"
       className="h-full antialiased"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">

@@ -8,10 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "test:e2e": "playwright test",
+    "test:e2e": "node scripts/run-playwright.mjs",
     "typecheck": "tsc --noEmit",
     "budget:bundle": "node scripts/check-bundle-budget.mjs",
-    "lighthouse:ci": "lhci autorun",
+    "lighthouse:ci": "node scripts/run-lhci.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

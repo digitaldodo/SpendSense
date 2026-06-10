@@ -8,6 +8,9 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+apps/web/.lighthouseci/
+apps/web/playwright-report/
+apps/web/test-results/
 
 .gradle/
 apps/api/build/

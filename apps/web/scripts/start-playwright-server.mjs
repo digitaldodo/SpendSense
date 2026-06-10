@@ -4,16 +4,18 @@ import { createRequire } from "node:module";
 const webRoot = process.cwd();
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve("next/dist/bin/next");
+const port = process.env.PLAYWRIGHT_PORT ?? "3100";
+const host = "127.0.0.1";
+const baseUrl = `http://${host}:${port}`;
 
-const server = spawn(process.execPath, [nextBin, "start", "-H", "127.0.0.1", "-p", "3000"], {
+const server = spawn(process.execPath, [nextBin, "dev", "-H", host, "-p", port], {
   cwd: webRoot,
   env: {
     ...withWindowsSystemPath(process.env),
+    NEXT_PUBLIC_API_BASE_URL: baseUrl,
     NEXT_PUBLIC_APP_ENV: "development",
-    NEXT_PUBLIC_API_BASE_URL: "http://127.0.0.1:3000",
     NEXT_PUBLIC_ENABLE_E2E_AUTH_BYPASS: "1",
-    NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3000",
-    SPENDSENSE_ENABLE_CI_MOCK_API: "1",
+    NEXT_PUBLIC_SITE_URL: baseUrl,
   },
   stdio: "inherit",
   windowsHide: true,
@@ -21,8 +23,19 @@ const server = spawn(process.execPath, [nextBin, "start", "-H", "127.0.0.1", "-p
 
 let shuttingDown = false;
 
+function shutdown(signal) {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  terminateProcessTree(server, signal);
+  setTimeout(() => {
+    process.exit(0);
+  }, 5_000).unref();
+}
+
 server.on("exit", (code, signal) => {
-  if (signal) {
+  if (signal && !shuttingDown) {
     process.kill(process.pid, signal);
     return;
   }
@@ -31,15 +44,6 @@ server.on("exit", (code, signal) => {
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-function shutdown(signal) {
-  if (shuttingDown) {
-    return;
-  }
-  shuttingDown = true;
-  terminateProcessTree(server, signal);
-  setTimeout(() => process.exit(0), 5_000).unref();
-}
 
 function terminateProcessTree(child, signal) {
   if (!child.pid) {

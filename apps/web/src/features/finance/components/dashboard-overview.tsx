@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, FormEvent, ReactNode } from "react";
 import {
   Activity,
@@ -200,6 +200,20 @@ export function DashboardOverview() {
 
       <DashboardInsightStrip summary={summary} />
 
+      <DeferredDashboardWorkspace summary={summary} />
+    </main>
+  );
+}
+
+function DeferredDashboardWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
+  const ready = useDeferredMount();
+
+  if (!ready) {
+    return <DashboardDeferredPlaceholder />;
+  }
+
+  return (
+    <>
       <NotificationDashboardWidgets summary={summary} />
 
       <PlanningWorkspace summary={summary} />
@@ -251,8 +265,52 @@ export function DashboardOverview() {
       <CategoryManagementPanel />
 
       <TransactionExplorer />
-    </main>
+    </>
   );
+}
+
+function useDeferredMount() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (ready) {
+      return undefined;
+    }
+
+    let timeoutId: number | undefined;
+    let idleId: number | undefined;
+    let animationId: number | undefined;
+
+    const reveal = () => setReady(true);
+
+    const browserWindow = window as Window &
+      typeof globalThis & {
+        requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      };
+
+    if (browserWindow.requestIdleCallback) {
+      idleId = browserWindow.requestIdleCallback(reveal, { timeout: 900 });
+    } else {
+      animationId = browserWindow.requestAnimationFrame(() => {
+        timeoutId = browserWindow.setTimeout(reveal, 180);
+      });
+    }
+
+    return () => {
+      if (idleId !== undefined && browserWindow.cancelIdleCallback) {
+        browserWindow.cancelIdleCallback(idleId);
+      }
+      if (animationId !== undefined) {
+        browserWindow.cancelAnimationFrame(animationId);
+      }
+      if (timeoutId !== undefined) {
+        browserWindow.clearTimeout(timeoutId);
+      }
+    };
+  }, [ready]);
+
+  return ready;
 }
 
 function DashboardInsightStrip({ summary }: { summary: DashboardFinanceSummary }) {
@@ -1923,15 +1981,67 @@ function DashboardEmptyState({ accountCount }: { accountCount: number }) {
 function DashboardLoadingState() {
   return (
     <main className="grid gap-5">
-      <Skeleton className="h-52 w-full" />
-      <div className="grid gap-4 md:grid-cols-4">
-        <Skeleton className="h-36 w-full" />
-        <Skeleton className="h-36 w-full" />
-        <Skeleton className="h-36 w-full" />
-        <Skeleton className="h-36 w-full" />
+      <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-raised sm:p-6">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Preparing ledger view</p>
+            <h2 className="text-2xl font-semibold leading-tight sm:text-3xl">
+              Your money view is based on imported transactions.
+            </h2>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Spending, income, balances, categories, and imports are loading from your workspace.
+            </p>
+          </div>
+        </div>
+        <Card className="rounded-lg border-border shadow-raised">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Recent import activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+      </section>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <FinancialCard
+          title="Account balance"
+          value="Loading"
+          detail="Account totals are syncing."
+          icon={Landmark}
+        />
+        <FinancialCard
+          title="This month spent"
+          value="Loading"
+          detail="Posted debits are syncing."
+          icon={ReceiptText}
+        />
+        <FinancialCard
+          title="This month received"
+          value="Loading"
+          detail="Posted credits are syncing."
+          icon={CircleDollarSign}
+        />
+        <FinancialCard
+          title="Net cashflow"
+          value="Loading"
+          detail="Monthly cashflow is syncing."
+          icon={TrendingUp}
+        />
       </div>
-      <Skeleton className="h-96 w-full" />
+      <DashboardDeferredPlaceholder />
     </main>
+  );
+}
+
+function DashboardDeferredPlaceholder() {
+  return (
+    <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]" aria-hidden="true">
+      <Skeleton className="h-48 w-full" />
+      <Skeleton className="h-48 w-full" />
+    </section>
   );
 }
 

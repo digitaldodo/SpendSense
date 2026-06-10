@@ -41,6 +41,7 @@ npm --prefix apps/web run build
 ./scripts/deployment/validate-env.ps1 -Environment staging -EnvFile .env.staging
 ./scripts/deployment/smoke-test.ps1 -WebBaseUrl https://staging.spendsense.example -ApiBaseUrl https://api-staging.spendsense.example
 ./scripts/deployment/incident-drill-check.ps1 -ApiBaseUrl https://api-staging.spendsense.example -ExpectedStatus UP -ExpectedEnvironment staging -ExpectedCommit <deployed-git-sha> -RequireQueueMonitoring
+./scripts/deployment/staging-rollout-rehearsal.ps1 -WebBaseUrl https://staging.spendsense.example -ApiBaseUrl https://api-staging.spendsense.example -ExpectedCommit <deployed-git-sha> -EnvFile .env.staging -RequireQueueMonitoring -RequireAdminVerification -AdminBearerToken <staging-admin-jwt>
 ```
 
 Use `validate-production-env.ps1` or `validate-env.ps1 -Environment production` before production cutover.
