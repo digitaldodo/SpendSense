@@ -184,8 +184,9 @@ public class ReportExportService {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("""
                 insert into generated_reports (
-                    id, user_profile_id, report_type, format, period_start, period_end, status, file_name, metadata_json
-                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    id, user_profile_id, report_type, format, period_start, period_end, status, file_name,
+                    metadata_json, generated_at, created_at, updated_at
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp, current_timestamp)
                 """,
                 id,
                 userProfileId,

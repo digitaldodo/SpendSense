@@ -132,33 +132,48 @@ public class FinancialInsightsService {
                     rollover,
                     "MATERIALIZED"
             ));
-            jdbcTemplate.update("""
-                    insert into budget_rollovers (
-                        id, user_profile_id, budget_id, category_id, source_period_start, source_period_end,
-                        target_period_start, target_period_end, original_amount, spent_amount, rollover_amount,
-                        state, metadata_json
-                    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    on conflict (user_profile_id, budget_id, target_period_start)
-                    do update set spent_amount = excluded.spent_amount,
-                        rollover_amount = excluded.rollover_amount,
-                        state = excluded.state,
-                        metadata_json = excluded.metadata_json,
-                        updated_at = now()
-                    """,
-                    UUID.randomUUID(),
-                    userProfileId,
-                    budget.getId(),
-                    budget.getCategory().getId(),
-                    sourceStart,
-                    sourceEnd,
-                    targetStart,
-                    targetEnd,
-                    budget.getAmount(),
-                    spent,
-                    rollover,
-                    "MATERIALIZED",
-                    writeJson(Map.of("deterministic", true, "calculation", "max(budget.amount - posted_debits, 0)"))
-            );
+            String metadata = writeJson(Map.of("deterministic", true, "calculation", "max(budget.amount - posted_debits, 0)"));
+            Integer existing = jdbcTemplate.queryForObject("""
+                    select count(*) from budget_rollovers
+                    where user_profile_id = ? and budget_id = ? and target_period_start = ?
+                    """, Integer.class, userProfileId, budget.getId(), targetStart);
+            if (existing != null && existing > 0) {
+                jdbcTemplate.update("""
+                        update budget_rollovers
+                        set spent_amount = ?, rollover_amount = ?, state = ?, metadata_json = ?, updated_at = current_timestamp
+                        where user_profile_id = ? and budget_id = ? and target_period_start = ?
+                        """,
+                        spent,
+                        rollover,
+                        "MATERIALIZED",
+                        metadata,
+                        userProfileId,
+                        budget.getId(),
+                        targetStart
+                );
+            } else {
+                jdbcTemplate.update("""
+                        insert into budget_rollovers (
+                            id, user_profile_id, budget_id, category_id, source_period_start, source_period_end,
+                            target_period_start, target_period_end, original_amount, spent_amount, rollover_amount,
+                            state, metadata_json, materialized_at, created_at, updated_at
+                        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp, current_timestamp)
+                        """,
+                        UUID.randomUUID(),
+                        userProfileId,
+                        budget.getId(),
+                        budget.getCategory().getId(),
+                        sourceStart,
+                        sourceEnd,
+                        targetStart,
+                        targetEnd,
+                        budget.getAmount(),
+                        spent,
+                        rollover,
+                        "MATERIALIZED",
+                        metadata
+                );
+            }
         }
         return responses;
     }
@@ -522,48 +537,66 @@ public class FinancialInsightsService {
 
     private void persistRecurringPatterns(UUID userProfileId, List<RecurringPatternResponse> recurring) {
         for (RecurringPatternResponse pattern : recurring) {
-            jdbcTemplate.update("""
-                    insert into recurring_transactions (
-                        id, user_profile_id, category_id, merchant_normalized, merchant_name, amount, currency,
-                        cadence, occurrence_count, first_seen_on, last_seen_on, next_expected_on, confidence,
-                        state, metadata_json
-                    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    on conflict (user_profile_id, merchant_normalized, amount, cadence)
-                    do update set category_id = excluded.category_id,
-                        merchant_name = excluded.merchant_name,
-                        occurrence_count = excluded.occurrence_count,
-                        last_seen_on = excluded.last_seen_on,
-                        next_expected_on = excluded.next_expected_on,
-                        confidence = excluded.confidence,
-                        state = excluded.state,
-                        metadata_json = excluded.metadata_json,
-                        detected_at = now(),
-                        updated_at = now()
-                    """,
-                    UUID.randomUUID(),
-                    userProfileId,
-                    pattern.categoryId(),
-                    pattern.merchantNormalized(),
-                    pattern.merchantName(),
-                    pattern.amount(),
-                    pattern.currency(),
-                    pattern.cadence(),
-                    pattern.occurrenceCount(),
-                    pattern.firstSeenOn(),
-                    pattern.lastSeenOn(),
-                    pattern.nextExpectedOn(),
-                    pattern.confidence(),
-                    "ACTIVE",
-                    writeJson(Map.of("subscription", pattern.subscription(), "deterministic", true))
-            );
+            String metadata = writeJson(Map.of("subscription", pattern.subscription(), "deterministic", true));
+            Integer existing = jdbcTemplate.queryForObject("""
+                    select count(*) from recurring_transactions
+                    where user_profile_id = ? and merchant_normalized = ? and amount = ? and cadence = ?
+                    """, Integer.class, userProfileId, pattern.merchantNormalized(), pattern.amount(), pattern.cadence());
+            if (existing != null && existing > 0) {
+                jdbcTemplate.update("""
+                        update recurring_transactions
+                        set category_id = ?, merchant_name = ?, occurrence_count = ?, last_seen_on = ?,
+                            next_expected_on = ?, confidence = ?, state = ?, metadata_json = ?,
+                            detected_at = current_timestamp, updated_at = current_timestamp
+                        where user_profile_id = ? and merchant_normalized = ? and amount = ? and cadence = ?
+                        """,
+                        pattern.categoryId(),
+                        pattern.merchantName(),
+                        pattern.occurrenceCount(),
+                        pattern.lastSeenOn(),
+                        pattern.nextExpectedOn(),
+                        pattern.confidence(),
+                        "ACTIVE",
+                        metadata,
+                        userProfileId,
+                        pattern.merchantNormalized(),
+                        pattern.amount(),
+                        pattern.cadence()
+                );
+            } else {
+                jdbcTemplate.update("""
+                        insert into recurring_transactions (
+                            id, user_profile_id, category_id, merchant_normalized, merchant_name, amount, currency,
+                            cadence, occurrence_count, first_seen_on, last_seen_on, next_expected_on, confidence,
+                            state, metadata_json, detected_at, created_at, updated_at
+                        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp, current_timestamp)
+                        """,
+                        UUID.randomUUID(),
+                        userProfileId,
+                        pattern.categoryId(),
+                        pattern.merchantNormalized(),
+                        pattern.merchantName(),
+                        pattern.amount(),
+                        pattern.currency(),
+                        pattern.cadence(),
+                        pattern.occurrenceCount(),
+                        pattern.firstSeenOn(),
+                        pattern.lastSeenOn(),
+                        pattern.nextExpectedOn(),
+                        pattern.confidence(),
+                        "ACTIVE",
+                        metadata
+                );
+            }
         }
     }
 
     private void persistInsightSnapshot(UUID userProfileId, String type, FinancialInsightsResponse response) {
         jdbcTemplate.update("""
                 insert into insight_snapshots (
-                    id, user_profile_id, snapshot_type, period_start, period_end, payload_json
-                ) values (?, ?, ?, ?, ?, ?)
+                    id, user_profile_id, snapshot_type, period_start, period_end, payload_json,
+                    generated_at, created_at, updated_at
+                ) values (?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp, current_timestamp)
                 """,
                 UUID.randomUUID(),
                 userProfileId,
