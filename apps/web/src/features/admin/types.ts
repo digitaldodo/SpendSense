@@ -207,3 +207,18 @@ export type AdminAuditLog = {
   traceId?: string | null;
   createdAt: string;
 };
+
+export type OperationalTraceEvent = {
+  id: string;
+  eventType: string;
+  severity: "INFO" | "WARNING" | "CRITICAL" | string;
+  environment: string;
+  releaseVersion?: string | null;
+  releaseCommit?: string | null;
+  source: string;
+  sourceId?: string | null;
+  traceId?: string | null;
+  message: string;
+  metadataJson?: string | null;
+  observedAt: string;
+};

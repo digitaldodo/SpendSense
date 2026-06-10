@@ -9,6 +9,7 @@ import com.spendsense.api.dto.admin.DeadLetterJobResponse;
 import com.spendsense.api.dto.admin.DeliveryTimelineEventResponse;
 import com.spendsense.api.dto.admin.IncidentLogResponse;
 import com.spendsense.api.dto.admin.OperationalAlertResponse;
+import com.spendsense.api.dto.admin.OperationalTraceEventResponse;
 import com.spendsense.api.dto.admin.ProviderDeliveryEventResponse;
 import com.spendsense.api.dto.admin.ProviderWebhookEventResponse;
 import com.spendsense.api.dto.admin.ReliabilityOverviewResponse;
@@ -147,6 +148,21 @@ public class AdminOperationsController {
         return ResponseEntity.ok(ApiResponse.success(
                 adminOperationsService.auditLogs(limit),
                 "Admin audit logs loaded.",
+                traceId
+        ));
+    }
+
+    @GetMapping("/trace-events")
+    ResponseEntity<ApiResponse<List<OperationalTraceEventResponse>>> traceEvents(
+            @RequestParam(required = false) String eventType,
+            @RequestParam(required = false) String severity,
+            @RequestParam(required = false) String source,
+            @RequestParam(defaultValue = "80") int limit,
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                adminOperationsService.traceEvents(eventType, severity, source, limit),
+                "Operational trace events loaded.",
                 traceId
         ));
     }

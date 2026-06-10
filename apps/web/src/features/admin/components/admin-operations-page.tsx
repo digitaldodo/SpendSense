@@ -30,6 +30,7 @@ import type {
   DeadLetterJob,
   IncidentLog,
   OperationalAlert,
+  OperationalTraceEvent,
   ProviderDeliveryEvent,
   ProviderWebhookEvent,
   QueueHealth,
@@ -44,6 +45,7 @@ import {
   useDeliveryTimeline,
   useIncidents,
   useOperationalAlerts,
+  useOperationalTraceEvents,
   useProviderDeliveryEvents,
   useProviderWebhookEvents,
   useReliabilityOverview,
@@ -66,6 +68,7 @@ export function AdminOperationsPage() {
   const [selectedIncident, setSelectedIncident] = useState<IncidentLog | null>(null);
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
   const [eventStatus, setEventStatus] = useState("");
+  const [traceSeverity, setTraceSeverity] = useState("");
   const overviewQuery = useAdminOperationsOverview();
   const reliabilityQuery = useReliabilityOverview();
   const alertsQuery = useOperationalAlerts({ status: "ACTIVE", severity: alertSeverity });
@@ -76,11 +79,13 @@ export function AdminOperationsPage() {
   const deadLettersQuery = useDeadLetterJobs(search);
   const eventsQuery = useProviderDeliveryEvents({ status: eventStatus });
   const auditQuery = useAdminAuditLogs();
+  const tracesQuery = useOperationalTraceEvents({ severity: traceSeverity });
 
   const overview = overviewQuery.data;
   const queues = useMemo(() => queuesQuery.data ?? [], [queuesQuery.data]);
   const deadLetters = deadLettersQuery.data ?? [];
   const providerEvents = eventsQuery.data ?? [];
+  const traces = tracesQuery.data ?? [];
   const reliability = reliabilityQuery.data;
   const alerts = alertsQuery.data ?? reliability?.alerts ?? [];
   const incidents = incidentsQuery.data ?? reliability?.incidents ?? [];
@@ -102,6 +107,7 @@ export function AdminOperationsPage() {
     deadLettersQuery.refetch();
     eventsQuery.refetch();
     auditQuery.refetch();
+    tracesQuery.refetch();
   }
 
   if (overviewQuery.isLoading && !overview) {
@@ -239,6 +245,8 @@ export function AdminOperationsPage() {
         <WebhookTimelinePanel events={webhookEvents} onOpenTimeline={setSelectedDeliveryId} />
         <RunbookViewer runbooks={runbooks} search={runbookSearch} onSearchChange={setRunbookSearch} />
       </section>
+
+      <OperationalTracePanel traces={traces} severity={traceSeverity} onSeverityChange={setTraceSeverity} />
 
       <JobDetailSheet jobId={selectedJobId} onOpenChange={(open) => !open && setSelectedJobId(null)} />
       <IncidentDetailSheet incident={selectedIncident} onOpenChange={(open) => !open && setSelectedIncident(null)} />
@@ -682,6 +690,63 @@ function RunbookViewer({ runbooks, search, onSearchChange }: { runbooks: Runbook
   );
 }
 
+function OperationalTracePanel({
+  traces,
+  severity,
+  onSeverityChange,
+}: {
+  traces: OperationalTraceEvent[];
+  severity: string;
+  onSeverityChange: (value: string) => void;
+}) {
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <CardTitle className="text-base">Operational traces</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">Deployment rehearsal, rollback, worker, and retry evidence.</p>
+        </div>
+        <select
+          className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+          value={severity}
+          onChange={(event) => onSeverityChange(event.target.value)}
+        >
+          <option value="">All severities</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="WARNING">Warning</option>
+          <option value="INFO">Info</option>
+        </select>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {traces.length === 0 ? (
+          <EmptyLine icon={<Activity className="size-5" />} text="Trace events appear after startup, drills, retries, or deployment checks." />
+        ) : (
+          traces.slice(0, 12).map((trace) => (
+            <div key={trace.id} className="grid gap-2 rounded-lg border border-border/70 bg-background/65 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill status={trace.severity} compact />
+                    <p className="font-semibold">{trace.eventType.replaceAll("_", " ").toLowerCase()}</p>
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{trace.message}</p>
+                </div>
+                <span className="text-xs text-muted-foreground">{formatDateTime(trace.observedAt)}</span>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span>{trace.environment}</span>
+                <span>{trace.source}</span>
+                {trace.releaseCommit ? <span>{shortCommit(trace.releaseCommit)}</span> : null}
+                {trace.traceId ? <span>{trace.traceId}</span> : null}
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function RunbookBlock({ title, value }: { title: string; value: string }) {
   return (
     <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
@@ -939,4 +1004,8 @@ function formatDateTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function shortCommit(value: string) {
+  return value.length > 12 ? value.slice(0, 12) : value;
 }

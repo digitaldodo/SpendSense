@@ -1,8 +1,10 @@
 package com.spendsense.api.config;
 
+import com.spendsense.api.service.ops.OperationalTraceService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.env.Environment;
@@ -12,10 +14,16 @@ import org.springframework.stereotype.Component;
 public class DeploymentStartupValidator implements ApplicationRunner {
     private final SpendSenseProperties properties;
     private final Environment environment;
+    private final OperationalTraceService operationalTraceService;
 
-    public DeploymentStartupValidator(SpendSenseProperties properties, Environment environment) {
+    public DeploymentStartupValidator(
+            SpendSenseProperties properties,
+            Environment environment,
+            OperationalTraceService operationalTraceService
+    ) {
         this.properties = properties;
         this.environment = environment;
+        this.operationalTraceService = operationalTraceService;
     }
 
     @Override
@@ -34,8 +42,26 @@ public class DeploymentStartupValidator implements ApplicationRunner {
         validateOperationalSafety(failures);
 
         if (!failures.isEmpty()) {
+            operationalTraceService.record(
+                    "deployment_validation_failed",
+                    "CRITICAL",
+                    "startup-validator",
+                    properties.operations().releaseCommit(),
+                    null,
+                    "Managed deployment validation failed before accepting traffic.",
+                    Map.of("failures", failures)
+            );
             throw new IllegalStateException("Managed deployment validation failed: " + String.join("; ", failures));
         }
+        operationalTraceService.record(
+                "deployment_validation_passed",
+                "INFO",
+                "startup-validator",
+                properties.operations().releaseCommit(),
+                null,
+                "Managed deployment validation passed.",
+                Map.of("profile", String.join(",", environment.getActiveProfiles()))
+        );
     }
 
     private boolean isManagedDeploymentProfile() {

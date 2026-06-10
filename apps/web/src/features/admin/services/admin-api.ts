@@ -9,6 +9,7 @@ import type {
   DeliveryTimelineEvent,
   IncidentLog,
   OperationalAlert,
+  OperationalTraceEvent,
   ProviderDeliveryEvent,
   ProviderWebhookEvent,
   ReliabilityOverview,
@@ -35,6 +36,8 @@ type ReliabilityFilters = {
   provider?: string;
   search?: string;
   category?: string;
+  eventType?: string;
+  source?: string;
   limit?: number;
 };
 
@@ -109,6 +112,13 @@ export async function getProviderDeliveryEvents(filters: ProviderEventFilters = 
 export async function getAdminAuditLogs() {
   const response = await authenticatedApiClient<ApiResponse<AdminAuditLog[]>>(
     "/api/v1/admin/operations/audit-logs?limit=40"
+  );
+  return response.data;
+}
+
+export async function getOperationalTraceEvents(filters: ReliabilityFilters = {}) {
+  const response = await authenticatedApiClient<ApiResponse<OperationalTraceEvent[]>>(
+    `/api/v1/admin/operations/trace-events${queryString(filters)}`
   );
   return response.data;
 }

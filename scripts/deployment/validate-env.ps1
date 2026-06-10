@@ -14,6 +14,7 @@ $required = @(
   "NEXT_PUBLIC_API_BASE_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_SENTRY_DSN",
   "NEXT_PUBLIC_RELEASE_COMMIT",
   "DATABASE_URL",
   "DATABASE_USERNAME",
@@ -23,7 +24,12 @@ $required = @(
   "SUPABASE_JWT_ISSUER",
   "SUPABASE_JWKS_URI",
   "SPENDSENSE_ENVIRONMENT",
-  "SPENDSENSE_RELEASE_COMMIT"
+  "SPENDSENSE_RELEASE_COMMIT",
+  "SPENDSENSE_ALERT_ESCALATION_EMAIL",
+  "SENTRY_DSN",
+  "RESEND_WEBHOOK_SECRET",
+  "SMTP_FALLBACK_WEBHOOK_SECRET",
+  "PUSH_PROVIDER_WEBHOOK_SECRET"
 )
 
 if (-not (Test-Path -LiteralPath $EnvFile)) {
@@ -55,6 +61,24 @@ if ($insecure.Count -gt 0) {
 
 if ($values["NEXT_PUBLIC_APP_ENV"] -ne $Environment -or $values["SPENDSENSE_ENVIRONMENT"] -ne $Environment) {
   Write-Error "Environment labels must both equal '$Environment'."
+  exit 1
+}
+
+if ($Environment -eq "staging") {
+  $productionMarkers = @("app.spendsense.example", "api.spendsense.example")
+  $contaminated = @($values.GetEnumerator() | Where-Object {
+    $key = $_.Key
+    $value = [string]$_.Value
+    $key -match "URL|ORIGIN|ISSUER" -and ($productionMarkers | Where-Object { $value -eq "https://$_" })
+  })
+  if ($contaminated.Count -gt 0) {
+    Write-Error "Staging env appears to point at production values: $($contaminated.Key -join ', ')"
+    exit 1
+  }
+}
+
+if ($Environment -eq "production" -and ($values["NEXT_PUBLIC_SITE_URL"] -match "staging" -or $values["NEXT_PUBLIC_API_BASE_URL"] -match "staging")) {
+  Write-Error "Production env must not point at staging domains."
   exit 1
 }
 

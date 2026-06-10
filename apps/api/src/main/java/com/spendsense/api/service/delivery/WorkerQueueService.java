@@ -3,6 +3,7 @@ package com.spendsense.api.service.delivery;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spendsense.api.config.SpendSenseProperties;
+import com.spendsense.api.service.ops.OperationalTraceService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -23,12 +24,19 @@ public class WorkerQueueService {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final SpendSenseProperties properties;
+    private final OperationalTraceService operationalTraceService;
     private final Clock clock;
 
-    public WorkerQueueService(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper, SpendSenseProperties properties) {
+    public WorkerQueueService(
+            JdbcTemplate jdbcTemplate,
+            ObjectMapper objectMapper,
+            SpendSenseProperties properties,
+            OperationalTraceService operationalTraceService
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
         this.properties = properties;
+        this.operationalTraceService = operationalTraceService;
         this.clock = Clock.systemUTC();
     }
 
@@ -115,6 +123,10 @@ public class WorkerQueueService {
 
     @Transactional
     public void retry(WorkerQueueJob job, String errorCode, String errorMessage) {
+        if (job.attemptCount() >= job.maxAttempts()) {
+            deadLetter(job, errorCode, errorMessage);
+            return;
+        }
         Instant scheduledFor = Instant.now(clock).plusSeconds(retryBackoffSeconds(job));
         jdbcTemplate.update("""
                 update worker_queues
@@ -122,6 +134,21 @@ public class WorkerQueueService {
                     last_error_code = ?, last_error_message = ?, updated_at = current_timestamp
                 where id = ?
                 """, scheduledFor, trim(errorCode, 80), trim(errorMessage, 720), job.id());
+        operationalTraceService.record(
+                "worker_queue_retry_scheduled",
+                "WARNING",
+                "worker_queue",
+                job.id().toString(),
+                job.traceId(),
+                "Worker queue job scheduled for retry.",
+                Map.of(
+                        "queueName", job.queueName(),
+                        "jobType", job.jobType(),
+                        "attemptCount", job.attemptCount(),
+                        "maxAttempts", job.maxAttempts(),
+                        "errorCode", errorCode == null ? "" : errorCode
+                )
+        );
     }
 
     @Transactional
@@ -149,6 +176,21 @@ public class WorkerQueueService {
                 job.traceId()
         );
         log.warn("worker_queue_dead_lettered queue={} jobType={} jobId={} errorCode={}", job.queueName(), job.jobType(), job.id(), errorCode);
+        operationalTraceService.record(
+                "retry_exhausted",
+                "CRITICAL",
+                "worker_queue",
+                job.id().toString(),
+                job.traceId(),
+                "Worker queue job exhausted retries and moved to dead letter.",
+                Map.of(
+                        "queueName", job.queueName(),
+                        "jobType", job.jobType(),
+                        "attemptCount", job.attemptCount(),
+                        "maxAttempts", job.maxAttempts(),
+                        "errorCode", errorCode == null ? "" : errorCode
+                )
+        );
     }
 
     @Transactional
@@ -175,6 +217,15 @@ public class WorkerQueueService {
                 """, queueName, workerId);
         if (released > 0) {
             log.info("worker_queue_shutdown_release queue={} workerId={} count={}", queueName, workerId, released);
+            operationalTraceService.record(
+                    "worker_shutdown_release",
+                    "WARNING",
+                    "worker_queue",
+                    workerId,
+                    null,
+                    "Worker released running jobs during graceful shutdown.",
+                    Map.of("queueName", queueName, "released", released)
+            );
         }
         return released;
     }
@@ -254,6 +305,15 @@ public class WorkerQueueService {
                 """, queueName);
         if (released > 0) {
             log.warn("worker_queue_expired_locks_released queue={} count={}", queueName, released);
+            operationalTraceService.record(
+                    "worker_expired_locks_released",
+                    "WARNING",
+                    "worker_queue",
+                    queueName,
+                    null,
+                    "Expired worker locks were released back to retry scheduling.",
+                    Map.of("queueName", queueName, "released", released)
+            );
         }
     }
 

@@ -5,6 +5,7 @@ import com.spendsense.api.dto.admin.AdminNotificationResponse;
 import com.spendsense.api.dto.admin.AdminOperationsOverviewResponse;
 import com.spendsense.api.dto.admin.DeadLetterJobResponse;
 import com.spendsense.api.dto.admin.DeliveryAnalyticsResponse;
+import com.spendsense.api.dto.admin.OperationalTraceEventResponse;
 import com.spendsense.api.dto.admin.ProviderDeliveryEventResponse;
 import com.spendsense.api.dto.admin.ProviderStatusResponse;
 import com.spendsense.api.dto.admin.QueueHealthResponse;
@@ -12,6 +13,7 @@ import com.spendsense.api.dto.admin.WorkerQueueResponse;
 import com.spendsense.api.security.SupabasePrincipal;
 import com.spendsense.api.service.delivery.WorkerObservabilityService;
 import com.spendsense.api.service.delivery.WorkerQueueService;
+import com.spendsense.api.service.ops.OperationalTraceService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -31,17 +33,20 @@ public class AdminOperationsService {
     private final WorkerObservabilityService workerObservabilityService;
     private final WorkerQueueService workerQueueService;
     private final AdminAuditService adminAuditService;
+    private final OperationalTraceService operationalTraceService;
 
     public AdminOperationsService(
             JdbcTemplate jdbcTemplate,
             WorkerObservabilityService workerObservabilityService,
             WorkerQueueService workerQueueService,
-            AdminAuditService adminAuditService
+            AdminAuditService adminAuditService,
+            OperationalTraceService operationalTraceService
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.workerObservabilityService = workerObservabilityService;
         this.workerQueueService = workerQueueService;
         this.adminAuditService = adminAuditService;
+        this.operationalTraceService = operationalTraceService;
     }
 
     public AdminOperationsOverviewResponse overview() {
@@ -130,10 +135,39 @@ public class AdminOperationsService {
                 """, this::auditRow, Math.min(Math.max(limit, 1), 100));
     }
 
+    public List<OperationalTraceEventResponse> traceEvents(String eventType, String severity, String source, int limit) {
+        List<Object> params = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("select * from operational_trace_events where 1 = 1");
+        if (StringUtils.hasText(eventType)) {
+            sql.append(" and event_type = ?");
+            params.add(eventType);
+        }
+        if (StringUtils.hasText(severity)) {
+            sql.append(" and severity = ?");
+            params.add(severity);
+        }
+        if (StringUtils.hasText(source)) {
+            sql.append(" and source = ?");
+            params.add(source);
+        }
+        sql.append(" order by observed_at desc limit ?");
+        params.add(Math.min(Math.max(limit, 1), 200));
+        return jdbcTemplate.query(sql.toString(), this::traceEventRow, params.toArray());
+    }
+
     @Transactional
     public WorkerQueueResponse retryQueueJob(SupabasePrincipal principal, UUID jobId, String reason, String traceId) {
         workerQueueService.retryQueueJob(jobId);
         adminAuditService.record(principal, "QUEUE_JOB_RETRY", "worker_queue", jobId, reason, Map.of(), traceId);
+        operationalTraceService.record(
+                "operator_queue_retry",
+                "WARNING",
+                "worker_queue",
+                jobId.toString(),
+                traceId,
+                "Operator requested worker queue retry.",
+                Map.of("actor", principal.email() == null ? "" : principal.email(), "reason", reason == null ? "" : reason)
+        );
         return queueJob(jobId);
     }
 
@@ -141,6 +175,15 @@ public class AdminOperationsService {
     public DeadLetterJobResponse retryDeadLetter(SupabasePrincipal principal, UUID deadLetterId, String reason, String traceId) {
         workerQueueService.retryDeadLetter(deadLetterId);
         adminAuditService.record(principal, "DEAD_LETTER_RETRY", "dead_letter_job", deadLetterId, reason, Map.of(), traceId);
+        operationalTraceService.record(
+                "operator_dead_letter_retry",
+                "WARNING",
+                "dead_letter_job",
+                deadLetterId.toString(),
+                traceId,
+                "Operator requested dead-letter retry.",
+                Map.of("actor", principal.email() == null ? "" : principal.email(), "reason", reason == null ? "" : reason)
+        );
         return jdbcTemplate.queryForObject("select * from dead_letter_jobs where id = ?", this::deadLetterRow, deadLetterId);
     }
 
@@ -370,6 +413,23 @@ public class AdminOperationsService {
                 rs.getString("reason"),
                 rs.getString("trace_id"),
                 instant(rs, "created_at")
+        );
+    }
+
+    private OperationalTraceEventResponse traceEventRow(ResultSet rs, int rowNum) throws SQLException {
+        return new OperationalTraceEventResponse(
+                rs.getObject("id", UUID.class),
+                rs.getString("event_type"),
+                rs.getString("severity"),
+                rs.getString("environment"),
+                rs.getString("release_version"),
+                rs.getString("release_commit"),
+                rs.getString("source"),
+                rs.getString("source_id"),
+                rs.getString("trace_id"),
+                rs.getString("message"),
+                rs.getString("metadata_json"),
+                instant(rs, "observed_at")
         );
     }
 

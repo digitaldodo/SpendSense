@@ -21,7 +21,9 @@ export function OperationalBanner() {
     ? "Maintenance mode"
     : isDegradedMode
       ? "Some services are slower than usual"
-      : `${appEnv} environment`;
+      : appEnv === "staging"
+        ? "Staging rehearsal"
+        : `${appEnv} environment`;
 
   return (
     <div className={cn("border-b px-4 py-2 text-sm", tone)}>
@@ -31,16 +33,22 @@ export function OperationalBanner() {
           <span className="font-medium">{label}</span>
           <span className="text-muted-foreground">
             {isMaintenanceMode
-              ? "SpendSense is read-only while planned work completes."
+              ? "SpendSense is in a protected read-only window while operational work completes."
               : isDegradedMode
-                ? "Your data remains protected; a few live updates may take longer."
-                : "Use this workspace for staging validation only."}
+                ? "Your data remains protected; delivery, reports, or live updates may take longer."
+                : appEnv === "staging"
+                  ? "Production-like checks only; do not use production credentials or customer data here."
+                  : "Use this workspace for validation only."}
           </span>
         </div>
-        <span className="font-mono text-xs text-muted-foreground">
-          {env.NEXT_PUBLIC_APP_VERSION}
+        <span className="font-mono text-xs text-muted-foreground" title={env.NEXT_PUBLIC_RELEASE_COMMIT}>
+          {env.NEXT_PUBLIC_APP_VERSION} · {shortCommit(env.NEXT_PUBLIC_RELEASE_COMMIT)}
         </span>
       </div>
     </div>
   );
+}
+
+function shortCommit(value: string) {
+  return value.length > 8 ? value.slice(0, 8) : value;
 }

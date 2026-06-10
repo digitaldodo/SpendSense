@@ -9,6 +9,7 @@ import {
   getDeadLetterJobs,
   getIncidents,
   getOperationalAlerts,
+  getOperationalTraceEvents,
   getProviderDeliveryEvents,
   getProviderWebhookEvents,
   getReliabilityOverview,
@@ -67,6 +68,14 @@ export function useAdminAuditLogs() {
     queryKey: [...adminOperationsKey, "audit-logs"],
     queryFn: getAdminAuditLogs,
     refetchInterval: 30_000,
+  });
+}
+
+export function useOperationalTraceEvents(filters: { eventType?: string; severity?: string; source?: string }) {
+  return useQuery({
+    queryKey: [...adminOperationsKey, "trace-events", filters],
+    queryFn: () => getOperationalTraceEvents({ ...filters, limit: 80 }),
+    refetchInterval: 20_000,
   });
 }
 

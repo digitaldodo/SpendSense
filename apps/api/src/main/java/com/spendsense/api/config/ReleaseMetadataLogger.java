@@ -1,5 +1,7 @@
 package com.spendsense.api.config;
 
+import com.spendsense.api.service.ops.OperationalTraceService;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -11,9 +13,11 @@ public class ReleaseMetadataLogger implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(ReleaseMetadataLogger.class);
 
     private final SpendSenseProperties properties;
+    private final OperationalTraceService operationalTraceService;
 
-    public ReleaseMetadataLogger(SpendSenseProperties properties) {
+    public ReleaseMetadataLogger(SpendSenseProperties properties, OperationalTraceService operationalTraceService) {
         this.properties = properties;
+        this.operationalTraceService = operationalTraceService;
     }
 
     @Override
@@ -26,6 +30,18 @@ public class ReleaseMetadataLogger implements ApplicationRunner {
                 operations.releaseCommit(),
                 operations.maintenanceMode(),
                 operations.degradedMode()
+        );
+        operationalTraceService.record(
+                "release_booted",
+                Boolean.TRUE.equals(operations.degradedMode()) ? "WARNING" : "INFO",
+                "release-metadata",
+                operations.releaseCommit(),
+                null,
+                "SpendSense API release booted.",
+                Map.of(
+                        "maintenanceMode", Boolean.TRUE.equals(operations.maintenanceMode()),
+                        "degradedMode", Boolean.TRUE.equals(operations.degradedMode())
+                )
         );
     }
 }

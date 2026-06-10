@@ -68,6 +68,20 @@ public class HealthController {
         ));
     }
 
+    @GetMapping("/deployment")
+    ResponseEntity<ApiResponse<DeploymentHealthResponse>> deployment(
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return readiness(traceId);
+    }
+
+    @GetMapping("/dependencies")
+    ResponseEntity<ApiResponse<DeploymentHealthResponse>> dependencies(
+            @RequestAttribute(name = "traceId", required = false) String traceId
+    ) {
+        return readiness(traceId);
+    }
+
     @GetMapping("/metrics")
     ResponseEntity<ApiResponse<SystemStatusResponse>> metrics(
             @RequestAttribute(name = "traceId", required = false) String traceId
