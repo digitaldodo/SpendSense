@@ -1,0 +1,59 @@
+name: Production build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-build-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: production artifacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - name: Build frontend
+        env:
+          NEXT_PUBLIC_APP_ENV: production
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://app.spendsense.example' }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://api.spendsense.example' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-anon-key' }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          NEXT_PUBLIC_APP_VERSION: ${{ github.sha }}
+        run: npm --prefix apps/web run build
+      - run: npm run budget:bundle
+      - name: Build backend
+        working-directory: apps/api
+        run: |
+          chmod +x gradlew
+          ./gradlew bootJar --no-daemon
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spendsense-web-next
+          path: |
+            apps/web/.next
+            apps/web/public
+          if-no-files-found: error
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spendsense-api-jar
+          path: apps/api/build/libs/*.jar
+          if-no-files-found: error

@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm --prefix apps/web run build",
+  "devCommand": "npm --prefix apps/web run dev",
+  "framework": "nextjs",
+  "installCommand": "npm ci",
+  "outputDirectory": "apps/web/.next",
+  "regions": ["bom1"]
+}

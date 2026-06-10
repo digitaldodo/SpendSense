@@ -1,10 +1,38 @@
 {
   "name": "SpendSense",
   "short_name": "SpendSense",
-  "description": "Financial intelligence platform foundation.",
+  "description": "A secure finance workspace for imports, spending visibility, budgets, goals, and operations.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f7f6f0",
+  "orientation": "portrait-primary",
+  "background_color": "#f8faf7",
   "theme_color": "#167078",
-  "icons": []
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/dashboard"
+    },
+    {
+      "name": "Import CSV",
+      "short_name": "Import",
+      "url": "/imports"
+    }
+  ]
 }

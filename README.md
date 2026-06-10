@@ -2,7 +2,7 @@
 
 SpendSense is a financial intelligence platform foundation for an AI-powered financial mentor, debt prevention system, safe EMI advisor, and future wealth simulator.
 
-Phase 1 intentionally builds infrastructure only. It does not implement authentication flows, transaction systems, dashboards, analytics, AI features, onboarding, or financial calculations.
+SpendSense is built incrementally. The current foundation includes protected web flows, financial import/dashboard surfaces, delivery operations, production health checks, and CI/CD quality gates. It still intentionally excludes AI mentor/chat, bank APIs, SMS parsing, predictive ML, EMI simulation, and a microservices split.
 
 ## Repository Strategy
 
@@ -68,16 +68,25 @@ Swagger UI: `http://localhost:8080/swagger-ui`
 - Next.js App Router, TypeScript, Tailwind CSS, and Shadcn/UI provide a typed, token-driven frontend foundation.
 - TanStack Query centralizes server-state behavior before product APIs arrive.
 - React Hook Form and Zod establish validation-first form composition.
-- Spring Boot, MongoDB, validation, security, actuator, and Springdoc provide the backend skeleton.
-- Docker Compose supplies local MongoDB without production deployment assumptions.
+- Spring Boot, PostgreSQL, Flyway, validation, security, actuator, and Springdoc provide the backend foundation.
+- Docker Compose supplies local PostgreSQL without production deployment assumptions.
 - Prettier, ESLint, Husky, and lint-staged keep formatting and commit hygiene consistent.
+- GitHub Actions, Playwright, bundle budgets, and Lighthouse CI provide production-readiness gates.
 
 ## Development Workflow
 
 1. Copy `.env.example`, `apps/web/.env.example`, and `apps/api/.env.example` into local `.env` files when needed.
-2. Start MongoDB with `npm run dev:infra`.
+2. Start PostgreSQL with `npm run dev:infra`.
 3. Run API and web in separate terminals.
-4. Use `npm run lint`, `npm run typecheck`, and `npm run build` before handing off larger changes.
+4. Use `npm run lint`, `npm run typecheck`, `npm run build`, `npm run budget:bundle`, `npm run test:e2e`, and `npm run lighthouse:ci` before handing off production-facing changes.
+
+## Production Foundation
+
+- Frontend deployment: Vercel config and `apps/web/Dockerfile`
+- Backend deployment: Render, Railway, Fly, and `apps/api/Dockerfile`
+- Health checks: `GET /api/v1/health/live` and `GET /api/v1/health/ready`
+- Deployment checklist: `docs/deployment/production-readiness.md`
+- Production env example: `.env.production.example`
 
 ## Git Discipline
 

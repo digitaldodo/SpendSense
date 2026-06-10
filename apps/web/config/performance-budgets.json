@@ -1,0 +1,16 @@
+{
+  "bundle": {
+    "maxInitialJsKb": 260,
+    "maxLargestJsAssetKb": 115,
+    "maxCssKb": 25
+  },
+  "lighthouse": {
+    "performance": 0.7,
+    "accessibility": 0.9,
+    "bestPractices": 0.9,
+    "seo": 0.9,
+    "totalBlockingTimeMs": 600,
+    "largestContentfulPaintMs": 5000,
+    "cumulativeLayoutShift": 0.1
+  }
+}

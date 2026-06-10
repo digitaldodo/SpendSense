@@ -2,6 +2,7 @@ package com.spendsense.api.service.delivery;
 
 import com.spendsense.api.service.finance.NotificationEngagementService;
 import com.spendsense.api.config.SpendSenseProperties;
+import jakarta.annotation.PreDestroy;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -30,6 +32,7 @@ public class DeliveryWorkerService {
     private final SpendSenseProperties properties;
     private final JdbcTemplate jdbcTemplate;
     private final Clock clock;
+    private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
     public DeliveryWorkerService(
             NotificationEngagementService notificationEngagementService,
@@ -53,6 +56,10 @@ public class DeliveryWorkerService {
     @Scheduled(fixedDelayString = "${spendsense.delivery.worker-delay-ms:300000}")
     @Transactional
     public void runDeliveryWorker() {
+        if (shuttingDown.get()) {
+            log.info("delivery_worker_skipped reason=shutdown");
+            return;
+        }
         UUID jobId = observabilityService.startJob("delivery-worker", "SCHEDULED_DELIVERY", Map.of("version", "phase-10"));
         int scanned = 0;
         int succeeded = 0;
@@ -84,6 +91,11 @@ public class DeliveryWorkerService {
         int succeeded = 0;
         int failed = 0;
         for (WorkerQueueJob job : jobs) {
+            if (shuttingDown.get()) {
+                log.info("delivery_worker_stopping queue=delivery workerId={} remainingJobs={}", workerId, jobs.size() - succeeded - failed);
+                workerQueueService.releaseRunningForWorker("delivery", workerId);
+                break;
+            }
             try {
                 Map<String, Object> payload = workerQueueService.readPayload(job.payloadJson());
                 UUID deliveryId = UUID.fromString(String.valueOf(payload.get("deliveryId")));
@@ -168,6 +180,12 @@ public class DeliveryWorkerService {
             queued++;
         }
         return queued;
+    }
+
+    @PreDestroy
+    void stopWorker() {
+        shuttingDown.set(true);
+        log.info("delivery_worker_shutdown_requested");
     }
 
     private record DigestCandidate(UUID userProfileId, String kind) {

@@ -162,6 +162,24 @@ public class WorkerQueueService {
     }
 
     @Transactional
+    public int releaseRunningForWorker(String queueName, String workerId) {
+        int released = jdbcTemplate.update("""
+                update worker_queues
+                set status = 'RETRY_SCHEDULED', locked_by = null, locked_until = null,
+                    scheduled_for = current_timestamp, last_error_code = 'WORKER_SHUTDOWN',
+                    last_error_message = 'Worker released the job during graceful shutdown.',
+                    updated_at = current_timestamp
+                where queue_name = ?
+                  and locked_by = ?
+                  and status = 'RUNNING'
+                """, queueName, workerId);
+        if (released > 0) {
+            log.info("worker_queue_shutdown_release queue={} workerId={} count={}", queueName, workerId, released);
+        }
+        return released;
+    }
+
+    @Transactional
     public void retryDeadLetter(UUID deadLetterId) {
         UUID queueJobId = jdbcTemplate.query("""
                 select worker_queue_id from dead_letter_jobs where id = ?

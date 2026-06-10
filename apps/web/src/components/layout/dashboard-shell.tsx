@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LogoutButton } from "@/features/auth/components/logout-button";
 import { NotificationToastHost } from "@/features/notifications/components/notification-toast-host";
@@ -49,9 +50,30 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
   const displayName = profile?.displayName || profile?.email?.split("@")[0] || "there";
   const unreadCount = notificationSummaryQuery.data?.unreadCount ?? 0;
 
+  useEffect(() => {
+    function focusSkipLink(event: KeyboardEvent) {
+      if (event.key !== "Tab" || event.shiftKey) {
+        return;
+      }
+      const activeElement = document.activeElement;
+      const startsAtDocument =
+        activeElement === document.body || activeElement === document.documentElement;
+      if (!startsAtDocument) {
+        return;
+      }
+      const skipLink = document.querySelector<HTMLAnchorElement>("[data-skip-link]");
+      skipLink?.focus();
+      event.preventDefault();
+    }
+
+    window.addEventListener("keydown", focusSkipLink, true);
+    return () => window.removeEventListener("keydown", focusSkipLink, true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,color-mix(in_oklch,var(--primary),white_93%)_0%,var(--background)_26rem)]">
       <a
+        data-skip-link
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
       >

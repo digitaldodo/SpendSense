@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -55,9 +55,15 @@ export function CsvImportPage() {
   const [accountId, setAccountId] = useState("");
   const [accountName, setAccountName] = useState("CSV Imported Account");
   const [institutionName, setInstitutionName] = useState("CSV Import");
+  const [fileInputReady, setFileInputReady] = useState(false);
   const summary = importMutation.data;
   const accounts = accountsQuery.data ?? [];
   const canUseExistingAccount = accounts.length > 0;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setFileInputReady(true), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   function validateFile(nextFile: File) {
     if (!nextFile.name.toLowerCase().endsWith(".csv")) {
@@ -81,7 +87,9 @@ export function CsvImportPage() {
     setFile(nextFile);
     setPreview(null);
     importMutation.reset();
-    const nextPreview = await previewMutation.mutateAsync({ file: nextFile }).catch(() => null);
+    const nextPreview = await previewMutation
+      .mutateAsync({ file: nextFile })
+      .catch(() => createLocalCsvPreview(nextFile));
     if (nextPreview) {
       setPreview(nextPreview);
       setMapping(nextPreview.mapping);
@@ -98,7 +106,9 @@ export function CsvImportPage() {
     if (!file) {
       return;
     }
-    const nextPreview = await previewMutation.mutateAsync({ file, mapping }).catch(() => null);
+    const nextPreview = await previewMutation
+      .mutateAsync({ file, mapping })
+      .catch(() => createLocalCsvPreview(file, mapping));
     if (nextPreview) {
       setPreview(nextPreview);
       setMapping(nextPreview.mapping);
@@ -117,6 +127,13 @@ export function CsvImportPage() {
       institutionName: accountMode === "new" ? institutionName : undefined,
       idempotencyKey: `csv:${preview.fileChecksum}`,
     });
+  }
+
+  function handleFileSelection(event: ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.currentTarget.files?.[0];
+    if (nextFile) {
+      void acceptFile(nextFile);
+    }
   }
 
   const errorMessage = localError ?? previewMutation.error?.message ?? importMutation.error?.message ?? null;
@@ -155,18 +172,16 @@ export function CsvImportPage() {
             onDropFile={acceptFile}
             setDragging={setDragging}
           />
-          <input
-            ref={fileInputRef}
-            className="hidden"
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(event) => {
-              const nextFile = event.target.files?.[0];
-              if (nextFile) {
-                void acceptFile(nextFile);
-              }
-            }}
-          />
+          {fileInputReady ? (
+            <input
+              ref={fileInputRef}
+              aria-label="CSV file"
+              className="sr-only"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleFileSelection}
+            />
+          ) : null}
 
           {errorMessage ? (
             <div className="flex items-start gap-3 rounded-lg border border-destructive/35 bg-destructive/10 p-3 text-sm text-destructive">
@@ -231,6 +246,81 @@ export function CsvImportPage() {
       </section>
     </main>
   );
+}
+
+async function createLocalCsvPreview(
+  file: File,
+  existingMapping: CsvColumnMapping = {}
+): Promise<CsvPreview | null> {
+  const text = await file.text().catch(() => "");
+  const [headerLine, ...rowLines] = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!headerLine) {
+    return null;
+  }
+
+  const columns = splitCsvLine(headerLine);
+  const mapping = {
+    date: existingMapping.date ?? inferColumn(columns, ["date", "occurred", "posted"]),
+    amount: existingMapping.amount ?? inferColumn(columns, ["amount", "value"]),
+    merchant: existingMapping.merchant ?? inferColumn(columns, ["merchant", "payee", "description"]),
+    description: existingMapping.description ?? inferColumn(columns, ["description", "narration"]),
+    reference: existingMapping.reference ?? inferColumn(columns, ["reference", "ref", "utr"]),
+  };
+
+  const previewRows = rowLines.slice(0, 5).map((line, index) => {
+    const values = splitCsvLine(line);
+    const raw = Object.fromEntries(columns.map((column, columnIndex) => [column, values[columnIndex] ?? ""]));
+    const amountValue = raw[mapping.amount ?? ""] ?? "";
+    return {
+      rowNumber: index + 1,
+      raw,
+      occurredAt: normalizeDate(raw[mapping.date ?? ""]),
+      amount: Number.parseFloat(amountValue.replace(/[^\d.-]/g, "")) || null,
+      direction: amountValue.trim().startsWith("-") ? ("CREDIT" as const) : ("DEBIT" as const),
+      merchantName: raw[mapping.merchant ?? ""] || raw[mapping.description ?? ""] || null,
+      description: raw[mapping.description ?? ""] || raw[mapping.merchant ?? ""] || null,
+      reference: raw[mapping.reference ?? ""] || `LOCAL/${index + 1}`,
+      duplicate: false,
+      warning: "Local preview. Confirming the import still validates on the API.",
+    };
+  });
+
+  return {
+    filename: file.name,
+    fileChecksum: `local-${file.name}-${file.size}`,
+    fileSignature: columns.join("|"),
+    columns,
+    mapping,
+    mappingConfidenceScore: 60,
+    reusedMapping: null,
+    recordsSeen: rowLines.length,
+    validRows: previewRows.length,
+    failedRows: 0,
+    duplicateRows: 0,
+    previewRows,
+    failures: [],
+  };
+}
+
+function splitCsvLine(line: string) {
+  return line.split(",").map((value) => value.trim().replace(/^"|"$/g, ""));
+}
+
+function inferColumn(columns: string[], hints: string[]) {
+  return columns.find((column) =>
+    hints.some((hint) => column.toLowerCase().includes(hint))
+  );
+}
+
+function normalizeDate(value?: string) {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 function UploadZone({

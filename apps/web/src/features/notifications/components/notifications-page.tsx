@@ -151,7 +151,7 @@ function InboxView({ notifications }: { notifications: Notification[] }) {
             <div key={`${item.id}-timeline`} className="grid grid-cols-[auto_1fr] gap-3">
               <span className={cn("mt-1 size-2.5 rounded-full", severityDot(item.severity))} aria-hidden />
               <div className="min-w-0 border-b border-border/70 pb-3 last:border-b-0">
-                <p className="truncate text-sm font-medium">{item.title}</p>
+                <p className="truncate text-sm font-medium">{timelineLabel(item.type)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</p>
               </div>
             </div>
@@ -580,6 +580,22 @@ function NotificationCard({ notification }: { notification: Notification }) {
       <NotificationActions notification={notification} />
     </div>
   );
+}
+
+function timelineLabel(type: string) {
+  if (type === "BUDGET_THRESHOLD") {
+    return "Budget reminder";
+  }
+  if (type === "RECURRING_PAYMENT") {
+    return "Recurring payment";
+  }
+  if (type === "REPORT_READY") {
+    return "Report ready";
+  }
+  if (type === "SAVINGS_NUDGE") {
+    return "Savings nudge";
+  }
+  return "Financial event";
 }
 
 function NotificationActions({ notification }: { notification: Notification }) {

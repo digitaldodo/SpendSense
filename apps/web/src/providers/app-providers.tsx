@@ -2,6 +2,8 @@
 
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { RuntimeSafety } from "@/components/system/runtime-safety";
+import { ServiceWorkerRegistrar } from "@/components/system/service-worker-registrar";
 import { AuthProvider } from "@/features/auth/components/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
 
@@ -10,7 +12,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <QueryProvider>
         <AuthProvider>
-          <TooltipProvider delay={180}>{children}</TooltipProvider>
+          <TooltipProvider delay={180}>
+            {children}
+            <RuntimeSafety />
+            <ServiceWorkerRegistrar />
+          </TooltipProvider>
         </AuthProvider>
       </QueryProvider>
     </ThemeProvider>

@@ -81,6 +81,29 @@ import {
 import { cn } from "@/lib/utils";
 
 const pageSize = 12;
+const emptyBudgetOverview = {
+  totalBudgeted: 0,
+  totalSpent: 0,
+  totalRemaining: 0,
+  usagePercent: 0,
+  overspentCount: 0,
+  state: "HEALTHY" as const,
+  budgets: [],
+};
+const emptyFinancialHealth = {
+  score: 0,
+  state: "HEALTHY" as const,
+  savingsRatio: 0,
+  spendingConsistency: 0,
+  incomeExpenseStability: 0,
+  overspendingFrequency: 0,
+};
+const emptySavingsMomentum = {
+  monthNetSavings: 0,
+  state: "HEALTHY" as const,
+  savingsRatio: 0,
+  goalContributionsThisMonth: 0,
+};
 
 export function DashboardOverview() {
   const summaryQuery = useDashboardFinanceSummary();
@@ -112,7 +135,7 @@ export function DashboardOverview() {
             </div>
             <Button variant="outline" render={<Link href="/imports" />}>
               <FileUp className="size-4" aria-hidden />
-              Import
+              Upload
             </Button>
           </div>
         </div>
@@ -135,7 +158,7 @@ export function DashboardOverview() {
                 >
                   <span className="truncate font-medium">{job.originalFilename}</span>
                   <span className="text-xs text-muted-foreground">
-                    {job.recordsImported} imported, {job.recordsDuplicate} skipped
+                    {job.recordsImported} rows, {job.recordsDuplicate} skipped
                   </span>
                 </Link>
               ))
@@ -211,7 +234,7 @@ export function DashboardOverview() {
         </Card>
         <Card className="rounded-lg border-border shadow-raised">
           <CardHeader>
-            <CardTitle className="text-base">Account balances</CardTitle>
+            <CardTitle className="text-base">Balances by account</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
             {summary.accounts.map((account) => (
@@ -704,8 +727,10 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
   const budgetHistoryQuery = useBudgetHistory();
   const deleteBudget = useDeleteBudget();
   const deleteGoal = useDeleteSavingsGoal();
-  const budgets = summary.budgetOverview.budgets;
-  const goals = summary.savingsGoals;
+  const budgetOverview = summary.budgetOverview ?? emptyBudgetOverview;
+  const budgets = budgetOverview.budgets ?? [];
+  const goals = summary.savingsGoals ?? [];
+  const topOverspendingCategories = summary.topOverspendingCategories ?? [];
 
   return (
     <section className="grid gap-4">
@@ -737,16 +762,16 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <MiniMetric
                     label="Budgeted"
-                    value={formatMoney(summary.budgetOverview.totalBudgeted)}
+                    value={formatMoney(budgetOverview.totalBudgeted)}
                   />
                   <MiniMetric
                     label="Remaining"
-                    value={formatMoney(summary.budgetOverview.totalRemaining)}
+                    value={formatMoney(budgetOverview.totalRemaining)}
                   />
                   <MiniMetric
                     label="Pressure"
-                    value={`${Math.round(summary.budgetOverview.usagePercent)}%`}
-                    state={summary.budgetOverview.state}
+                    value={`${Math.round(budgetOverview.usagePercent)}%`}
+                    state={budgetOverview.state}
                   />
                 </div>
                 <div className="grid gap-3">
@@ -821,10 +846,10 @@ function PlanningWorkspace({ summary }: { summary: DashboardFinanceSummary }) {
             <CardTitle className="text-base">Top budget pressure</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
-            {summary.topOverspendingCategories.length === 0 ? (
+            {topOverspendingCategories.length === 0 ? (
               <ChartEmpty label="No category is over budget right now" />
             ) : (
-              summary.topOverspendingCategories.map((item) => (
+              topOverspendingCategories.map((item) => (
                 <WidgetLine
                   key={item.categoryId ?? item.name}
                   label={item.name}
@@ -987,7 +1012,8 @@ function GoalProgressCard({
 }
 
 function FinancialHealthCard({ summary }: { summary: DashboardFinanceSummary }) {
-  const health = summary.financialHealth;
+  const health = summary.financialHealth ?? emptyFinancialHealth;
+  const savingsMomentum = summary.savingsMomentum ?? emptySavingsMomentum;
   return (
     <Card className="rounded-lg border-border shadow-raised">
       <CardHeader>
@@ -1013,13 +1039,13 @@ function FinancialHealthCard({ summary }: { summary: DashboardFinanceSummary }) 
           <MiniMetric
             label="Savings ratio"
             value={`${Math.round(health.savingsRatio)}%`}
-            state={summary.savingsMomentum.state}
+            state={savingsMomentum.state}
           />
           <MiniMetric label="Consistency" value={`${Math.round(health.spendingConsistency)}%`} />
           <MiniMetric label="Stability" value={`${Math.round(health.incomeExpenseStability)}%`} />
           <MiniMetric
             label="Goal contributions"
-            value={formatMoney(summary.savingsMomentum.goalContributionsThisMonth)}
+            value={formatMoney(savingsMomentum.goalContributionsThisMonth)}
           />
         </div>
       </CardContent>

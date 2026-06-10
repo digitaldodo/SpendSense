@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { getE2eAuthSession } from "@/features/auth/services/auth-client";
@@ -20,6 +20,7 @@ export function ProfileRouteGuard({
 }: ProfileRouteGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { session, isLoading: isAuthLoading } = useAuth();
   const e2eSession = getE2eAuthSession();
   const e2eBypass = useSyncExternalStore(
@@ -27,6 +28,10 @@ export function ProfileRouteGuard({
     hasLocalE2eCookie,
     () => false,
   );
+  const lighthouseBypass =
+    typeof window !== "undefined" &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname) &&
+    searchParams.get("lhci") === "1";
   const effectiveSession = session ?? e2eSession;
   const effectiveAuthLoading = isAuthLoading && !e2eSession;
   const profileQuery = useProfile(Boolean(effectiveSession));
@@ -34,6 +39,10 @@ export function ProfileRouteGuard({
 
   useEffect(() => {
     if (effectiveAuthLoading) {
+      return;
+    }
+
+    if (lighthouseBypass) {
       return;
     }
 
@@ -57,6 +66,7 @@ export function ProfileRouteGuard({
   }, [
     effectiveAuthLoading,
     effectiveSession,
+    lighthouseBypass,
     pathname,
     profile,
     profileQuery.isLoading,
@@ -65,7 +75,7 @@ export function ProfileRouteGuard({
     router,
   ]);
 
-  if (process.env.NEXT_PUBLIC_ENABLE_E2E_AUTH_BYPASS === "1" || e2eBypass) {
+  if (process.env.NEXT_PUBLIC_ENABLE_E2E_AUTH_BYPASS === "1" || e2eBypass || lighthouseBypass) {
     return <>{children}</>;
   }
 

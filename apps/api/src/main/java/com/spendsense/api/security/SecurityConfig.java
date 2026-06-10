@@ -46,11 +46,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/health",
+                                "/api/v1/health/**",
                                 "/api/v1/webhooks/**",
                                 "/actuator/health/**",
                                 "/api-docs/**",
-                "/swagger-ui/**",
-                "/swagger-ui.html"
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SpendSense">
+  <rect width="512" height="512" fill="#167078" />
+  <path d="M132 322c50-88 94-132 132-132 32 0 54 30 82 30 22 0 42-15 66-48" fill="none" stroke="#f4d35e" stroke-linecap="round" stroke-linejoin="round" stroke-width="38" />
+  <circle cx="156" cy="158" r="28" fill="#f8faf7" />
+  <circle cx="356" cy="356" r="28" fill="#f8faf7" />
+</svg>

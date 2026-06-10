@@ -10,6 +10,8 @@
     "lint:fix": "eslint --fix",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
+    "budget:bundle": "node scripts/check-bundle-budget.mjs",
+    "lighthouse:ci": "lhci autorun",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -39,6 +41,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@lhci/cli": "^0.15.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "lint-staged": "^16.4.0",

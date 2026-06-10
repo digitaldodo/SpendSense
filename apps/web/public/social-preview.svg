@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="SpendSense dashboard preview">
+  <rect width="1200" height="630" fill="#f8faf7" />
+  <rect x="96" y="72" width="1008" height="486" rx="28" fill="#ffffff" stroke="#d9e4de" stroke-width="2" />
+  <text x="142" y="150" fill="#18332f" font-family="Arial, sans-serif" font-size="54" font-weight="700">SpendSense</text>
+  <text x="144" y="196" fill="#5a6b66" font-family="Arial, sans-serif" font-size="26">Secure financial visibility, budgets, goals, and operations.</text>
+  <rect x="142" y="252" width="210" height="130" rx="14" fill="#167078" />
+  <rect x="382" y="252" width="210" height="130" rx="14" fill="#e8f2ee" />
+  <rect x="622" y="252" width="210" height="130" rx="14" fill="#fff6d8" />
+  <rect x="862" y="252" width="196" height="130" rx="14" fill="#edf4fb" />
+  <path d="M160 474c88-102 156-144 210-126 45 15 72 78 126 78 70 0 98-112 172-112 63 0 90 80 150 84 50 3 92-46 144-112" fill="none" stroke="#167078" stroke-linecap="round" stroke-width="18" />
+  <circle cx="160" cy="474" r="12" fill="#f4d35e" />
+  <circle cx="962" cy="286" r="18" fill="#167078" />
+</svg>

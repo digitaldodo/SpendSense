@@ -15,6 +15,11 @@
     "lint": "npm --prefix apps/web run lint",
     "typecheck": "npm --prefix apps/web run typecheck",
     "build": "npm --prefix apps/web run build && cd apps/api && gradlew.bat build",
+    "build:web": "npm --prefix apps/web run build",
+    "build:api": "cd apps/api && gradlew.bat build",
+    "test:e2e": "npm --prefix apps/web run test:e2e",
+    "budget:bundle": "npm --prefix apps/web run budget:bundle",
+    "lighthouse:ci": "npm --prefix apps/web run lighthouse:ci",
     "format": "prettier --write .",
     "prepare": "husky"
   },
