@@ -1,5 +1,6 @@
 package com.spendsense.api.dto.finance;
 
+import com.spendsense.api.dto.engagement.NotificationDashboardResponse;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -22,6 +23,7 @@ public record DashboardFinanceSummaryResponse(
         FinancialHealthResponse financialHealth,
         SavingsMomentumResponse savingsMomentum,
         List<CategoryTrendResponse> categoryTrends,
-        DashboardInsightSummaryResponse insightSummary
+        DashboardInsightSummaryResponse insightSummary,
+        NotificationDashboardResponse notificationDashboard
 ) {
 }

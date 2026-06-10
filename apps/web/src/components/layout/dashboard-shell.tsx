@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  Bell,
   Home,
   FileUp,
   Landmark,
@@ -14,6 +15,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LogoutButton } from "@/features/auth/components/logout-button";
+import { NotificationToastHost } from "@/features/notifications/components/notification-toast-host";
+import { useNotificationSummary } from "@/features/notifications/hooks/use-notifications";
 import { ProfileRouteGuard } from "@/features/profile/components/profile-route-guard";
 import { useProfile } from "@/features/profile/hooks/use-profile";
 import { cn } from "@/lib/utils";
@@ -22,6 +25,7 @@ const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/dashboard#transactions", label: "Transactions", icon: ReceiptText },
   { href: "/insights", label: "Insights", icon: BarChart3 },
+  { href: "/notifications", label: "Alerts", icon: Bell },
   { href: "/imports", label: "Import", icon: FileUp },
   { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/dashboard", label: "Profile", icon: UserRound },
@@ -38,8 +42,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 function DashboardShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const profileQuery = useProfile();
+  const notificationSummaryQuery = useNotificationSummary();
   const profile = profileQuery.data;
   const displayName = profile?.displayName || profile?.email?.split("@")[0] || "there";
+  const unreadCount = notificationSummaryQuery.data?.unreadCount ?? 0;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,color-mix(in_oklch,var(--primary),white_93%)_0%,var(--background)_26rem)]">
@@ -66,7 +72,9 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                       ? pathname.startsWith("/imports")
                       : item.href === "/insights"
                         ? pathname.startsWith("/insights")
-                        : index === 0 && pathname === "/dashboard";
+                        : item.href === "/notifications"
+                          ? pathname.startsWith("/notifications")
+                          : index === 0 && pathname === "/dashboard";
                 return (
                   <Link
                     key={`${item.label}-${index}`}
@@ -114,6 +122,18 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="flex items-center gap-2">
+                <Link
+                  href="/notifications"
+                  className="relative grid size-10 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  title="Notifications"
+                >
+                  <Bell className="size-4" aria-hidden />
+                  {unreadCount > 0 ? (
+                    <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-foreground">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  ) : null}
+                </Link>
                 <LogoutButton />
               </div>
             </div>
@@ -124,7 +144,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/94 px-3 py-2 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-6 gap-1">
+        <div className="mx-auto grid max-w-xl grid-cols-7 gap-1">
           {navItems.map((item, index) => {
             const Icon = item.icon;
             const active =
@@ -134,7 +154,9 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                   ? pathname.startsWith("/imports")
                   : item.href === "/insights"
                     ? pathname.startsWith("/insights")
-                    : index === 0 && pathname === "/dashboard";
+                    : item.href === "/notifications"
+                      ? pathname.startsWith("/notifications")
+                      : index === 0 && pathname === "/dashboard";
             return (
               <Link
                 key={`${item.label}-mobile-${index}`}
@@ -145,12 +167,13 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <Icon className="size-4" aria-hidden />
-                <span>{item.label}</span>
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
+      <NotificationToastHost />
     </div>
   );
 }

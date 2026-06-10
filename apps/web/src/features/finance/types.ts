@@ -320,6 +320,98 @@ export type GeneratedReport = {
   categoryBreakdown: CategorySpend[];
 };
 
+export type Notification = {
+  id: string;
+  type: string;
+  severity: "INFO" | "CAUTION" | "ACTION" | string;
+  title: string;
+  body: string;
+  actionLabel?: string | null;
+  actionUrl?: string | null;
+  sourceType?: string | null;
+  sourceId?: string | null;
+  deliveryChannel: string;
+  lifecycleStatus: string;
+  priority: number;
+  read: boolean;
+  scheduledFor?: string | null;
+  deliveredAt?: string | null;
+  readAt?: string | null;
+  dismissedAt?: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
+};
+
+export type NotificationPreferences = {
+  id: string;
+  inAppEnabled: boolean;
+  budgetWarningsEnabled: boolean;
+  recurringRemindersEnabled: boolean;
+  reportReadyEnabled: boolean;
+  savingsNudgesEnabled: boolean;
+  spendingIncreaseEnabled: boolean;
+  weeklyDigestEnabled: boolean;
+  monthlyReportEnabled: boolean;
+  timezone: string;
+  quietHoursStart?: string | null;
+  quietHoursEnd?: string | null;
+  updatedAt: string;
+};
+
+export type NotificationPreferencePayload = Partial<
+  Omit<NotificationPreferences, "id" | "updatedAt">
+>;
+
+export type ScheduledReport = {
+  id: string;
+  reportType: string;
+  format: string;
+  cadence: string;
+  timezone: string;
+  deliveryChannel: string;
+  nextRunAt: string;
+  lastRunAt?: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ScheduledReportPayload = {
+  reportType: string;
+  format: string;
+  cadence: string;
+  timezone?: string;
+  deliveryChannel?: string;
+  active?: boolean;
+};
+
+export type ReportDeliveryLog = {
+  id: string;
+  scheduledReportId?: string | null;
+  generatedReportId?: string | null;
+  deliveryChannel: string;
+  status: string;
+  attemptedAt: string;
+  deliveredAt?: string | null;
+  errorMessage?: string | null;
+};
+
+export type NotificationSummary = {
+  unreadCount: number;
+  activeCount: number;
+  latest: Notification[];
+  timeline: Notification[];
+};
+
+export type NotificationDashboard = {
+  unreadCount: number;
+  upcomingSubscriptions: Notification[];
+  budgetWarnings: Notification[];
+  reminders: Notification[];
+  scheduledReports: ScheduledReport[];
+  savingsNudges: Notification[];
+};
+
 export type BudgetRollover = {
   budgetId: string;
   budgetName: string;
@@ -354,6 +446,7 @@ export type DashboardFinanceSummary = {
   savingsMomentum: SavingsMomentum;
   categoryTrends: CategoryTrend[];
   insightSummary: DashboardInsightSummary;
+  notificationDashboard: NotificationDashboard;
 };
 
 export type DemoSeedResult = {

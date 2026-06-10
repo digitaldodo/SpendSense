@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  Bell,
+  CalendarClock,
   CheckCircle2,
   CircleDollarSign,
   Edit3,
@@ -164,6 +166,8 @@ export function DashboardOverview() {
 
       <DashboardInsightStrip summary={summary} />
 
+      <NotificationDashboardWidgets summary={summary} />
+
       <PlanningWorkspace summary={summary} />
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
@@ -257,6 +261,98 @@ function DashboardInsightStrip({ summary }: { summary: DashboardFinanceSummary }
         <BarChart3 className="size-4" aria-hidden />
         Insights
       </Button>
+    </section>
+  );
+}
+
+function NotificationDashboardWidgets({ summary }: { summary: DashboardFinanceSummary }) {
+  const notifications = summary.notificationDashboard;
+  return (
+    <section className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
+      <Card className="rounded-lg border-border shadow-raised">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">Upcoming subscriptions</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Detected recurring payments due soon.</p>
+          </div>
+          <Repeat2 className="size-5 text-primary" aria-hidden />
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {notifications.upcomingSubscriptions.length === 0 ? (
+            <WidgetLine label="Recurring payments" value="Clear" />
+          ) : (
+            notifications.upcomingSubscriptions.slice(0, 3).map((item) => (
+              <Link key={item.id} className="rounded-lg border border-border/70 bg-background/60 px-3 py-2 transition-colors hover:bg-muted/45" href="/notifications?tab=recurring">
+                <p className="truncate text-sm font-medium">{item.title}</p>
+                <p className="mt-1 max-h-9 overflow-hidden text-xs text-muted-foreground">{item.body}</p>
+              </Link>
+            ))
+          )}
+          <Button className="mt-1 w-full" variant="outline" render={<Link href="/notifications?tab=recurring" />}>
+            <Repeat2 className="size-4" aria-hidden />
+            Review recurring payments
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-lg border-border shadow-raised">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">Budget warnings</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Gentle threshold reminders from active budgets.</p>
+          </div>
+          <Bell className="size-5 text-primary" aria-hidden />
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {notifications.budgetWarnings.length === 0 ? (
+            <WidgetLine label="Budget thresholds" value="Steady" />
+          ) : (
+            notifications.budgetWarnings.slice(0, 3).map((item) => (
+              <div key={item.id} className="rounded-lg border border-border/70 bg-background/60 px-3 py-2">
+                <p className="truncate text-sm font-medium">{item.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{item.body}</p>
+              </div>
+            ))
+          )}
+          <Button className="mt-1 w-full" variant="outline" render={<Link href="/notifications" />}>
+            <Bell className="size-4" aria-hidden />
+            Open reminders
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-lg border-border shadow-raised">
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">Scheduled reports</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Exports queued for weekly or monthly cadence.</p>
+          </div>
+          <CalendarClock className="size-5 text-primary" aria-hidden />
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {notifications.scheduledReports.length === 0 ? (
+            <WidgetLine label="Report schedule" value="Not set" />
+          ) : (
+            notifications.scheduledReports.slice(0, 3).map((schedule) => (
+              <WidgetLine
+                key={schedule.id}
+                label={`${schedule.cadence.toLowerCase()} ${schedule.format}`}
+                value={new Date(schedule.nextRunAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+              />
+            ))
+          )}
+          {notifications.savingsNudges[0] ? (
+            <div className="rounded-lg border border-border/70 bg-background/60 px-3 py-2">
+              <p className="truncate text-sm font-medium">{notifications.savingsNudges[0].title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{notifications.savingsNudges[0].body}</p>
+            </div>
+          ) : null}
+          <Button className="mt-1 w-full" variant="outline" render={<Link href="/notifications?tab=reports" />}>
+            <CalendarClock className="size-4" aria-hidden />
+            Manage exports
+          </Button>
+        </CardContent>
+      </Card>
     </section>
   );
 }

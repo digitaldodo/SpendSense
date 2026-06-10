@@ -178,7 +178,7 @@ public class FinancialInsightsService {
         return responses;
     }
 
-    FinancialInsightsResponse buildInsights(UUID userProfileId, LocalDate requestedFrom, LocalDate requestedTo, boolean materializeRecurring) {
+    public FinancialInsightsResponse buildInsights(UUID userProfileId, LocalDate requestedFrom, LocalDate requestedTo, boolean materializeRecurring) {
         LocalDate today = LocalDate.now(clock);
         LocalDate periodStart = requestedFrom == null ? today.withDayOfMonth(1).minusMonths(5) : requestedFrom;
         LocalDate periodEnd = requestedTo == null ? today.withDayOfMonth(1).plusMonths(1).minusDays(1) : requestedTo;

@@ -59,6 +59,7 @@ public class TransactionService {
     private final ImportMapper importMapper;
     private final PlanningService planningService;
     private final FinancialInsightsService financialInsightsService;
+    private final NotificationEngagementService notificationEngagementService;
     private final UserProfileSyncService userProfileSyncService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -74,6 +75,7 @@ public class TransactionService {
             ImportMapper importMapper,
             PlanningService planningService,
             FinancialInsightsService financialInsightsService,
+            NotificationEngagementService notificationEngagementService,
             UserProfileSyncService userProfileSyncService,
             ObjectMapper objectMapper
     ) {
@@ -87,6 +89,7 @@ public class TransactionService {
         this.importMapper = importMapper;
         this.planningService = planningService;
         this.financialInsightsService = financialInsightsService;
+        this.notificationEngagementService = notificationEngagementService;
         this.userProfileSyncService = userProfileSyncService;
         this.objectMapper = objectMapper;
         this.clock = Clock.systemUTC();
@@ -213,7 +216,8 @@ public class TransactionService {
                 planningService.financialHealth(userProfileId, monthIncome, monthSpend, monthlySummary, budgetOverview),
                 planningService.savingsMomentum(userProfileId, monthIncome, monthSpend),
                 planningService.categoryTrends(userProfileId, sixMonthsStart, nextMonthStart),
-                financialInsightsService.dashboardIndicators(userProfileId)
+                financialInsightsService.dashboardIndicators(userProfileId),
+                notificationEngagementService.dashboardWidgets(userProfileId)
         );
     }
 
