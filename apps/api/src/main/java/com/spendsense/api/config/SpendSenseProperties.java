@@ -28,7 +28,7 @@ public record SpendSenseProperties(Api api, Security security, Cors cors, Demo d
     public record Demo(Boolean enabled) {
     }
 
-    public record Delivery(Worker worker, Email email) {
+    public record Delivery(Worker worker, Email email, Webhooks webhooks) {
     }
 
     public record Worker(Integer batchSize, Integer retryDelaySeconds, Integer lockTtlSeconds, Integer cleanupRetentionDays) {
@@ -41,5 +41,8 @@ public record SpendSenseProperties(Api api, Security security, Cors cors, Demo d
     }
 
     public record Smtp(Boolean enabled, String fromEmail, String fromName) {
+    }
+
+    public record Webhooks(Boolean requireSignature, String resendSecret, String smtpFallbackSecret, String pushProviderSecret) {
     }
 }

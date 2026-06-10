@@ -66,6 +66,11 @@ spendsense:
         enabled: ${SMTP_ENABLED:false}
         from-email: ${SMTP_FROM_EMAIL:no-reply@spendsense.local}
         from-name: ${SMTP_FROM_NAME:SpendSense}
+    webhooks:
+      require-signature: ${SPENDSENSE_WEBHOOK_REQUIRE_SIGNATURE:false}
+      resend-secret: ${RESEND_WEBHOOK_SECRET:}
+      smtp-fallback-secret: ${SMTP_FALLBACK_WEBHOOK_SECRET:}
+      push-provider-secret: ${PUSH_PROVIDER_WEBHOOK_SECRET:}
 
 management:
   endpoints:

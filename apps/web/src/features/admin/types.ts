@@ -53,6 +53,95 @@ export type AdminOperationsOverview = {
   recentJobs: WorkerJobLog[];
 };
 
+export type OperationalAlert = {
+  id: string;
+  alertKey: string;
+  severity: "INFO" | "WARNING" | "CRITICAL" | string;
+  status: "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED" | string;
+  title: string;
+  summary: string;
+  sourceType: string;
+  sourceId?: string | null;
+  runbookSlug?: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  acknowledgedAt?: string | null;
+  acknowledgedByEmail?: string | null;
+  acknowledgmentNote?: string | null;
+  resolvedAt?: string | null;
+  metadataJson?: string | null;
+};
+
+export type IncidentLog = {
+  id: string;
+  incidentKey: string;
+  severity: "WARNING" | "CRITICAL" | string;
+  status: "OPEN" | "RESOLVED" | string;
+  title: string;
+  summary: string;
+  primarySourceType: string;
+  primarySourceId?: string | null;
+  alertCount: number;
+  openedAt: string;
+  lastEventAt: string;
+  acknowledgedAt?: string | null;
+  resolvedAt?: string | null;
+  metadataJson?: string | null;
+};
+
+export type RunbookEntry = {
+  id: string;
+  slug: string;
+  title: string;
+  severity: string;
+  category: string;
+  summary: string;
+  symptoms: string;
+  diagnosisSteps: string;
+  mitigationSteps: string;
+  escalationNotes?: string | null;
+  relatedAlertKeys?: string | null;
+  updatedAt: string;
+};
+
+export type ProviderWebhookEvent = {
+  id: string;
+  provider: string;
+  channel: string;
+  eventType: string;
+  normalizedStatus: string;
+  providerEventId?: string | null;
+  providerMessageId?: string | null;
+  signatureValid: boolean;
+  duplicateEvent: boolean;
+  replayOfEventId?: string | null;
+  deliverySynced: boolean;
+  notificationDeliveryId?: string | null;
+  failureReason?: string | null;
+  receivedAt: string;
+  processedAt?: string | null;
+};
+
+export type DeliveryTimelineEvent = {
+  id: string;
+  notificationDeliveryId?: string | null;
+  source: string;
+  provider: string;
+  eventType: string;
+  status: string;
+  message: string;
+  observedAt: string;
+};
+
+export type ReliabilityOverview = {
+  status: string;
+  observedAt: string;
+  alerts: OperationalAlert[];
+  incidents: IncidentLog[];
+  webhookEvents: ProviderWebhookEvent[];
+  runbooks: RunbookEntry[];
+};
+
 export type WorkerQueue = {
   id: string;
   queueName: string;

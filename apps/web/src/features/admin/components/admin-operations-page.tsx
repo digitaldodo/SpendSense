@@ -5,29 +5,51 @@ import type { ReactNode } from "react";
 import {
   Activity,
   Bell,
+  BookOpen,
+  CheckCircle2,
   Clock3,
   DatabaseZap,
+  ExternalLink,
   MailCheck,
   RefreshCw,
   RotateCcw,
   Search,
   ServerCog,
   ShieldCheck,
+  Siren,
   TimerReset,
+  Webhook,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { AdminNotification, DeadLetterJob, ProviderDeliveryEvent, QueueHealth, WorkerQueue } from "@/features/admin/types";
+import type {
+  AdminNotification,
+  DeadLetterJob,
+  IncidentLog,
+  OperationalAlert,
+  ProviderDeliveryEvent,
+  ProviderWebhookEvent,
+  QueueHealth,
+  RunbookEntry,
+  WorkerQueue,
+} from "@/features/admin/types";
 import {
+  useAcknowledgeOperationalAlert,
   useAdminAuditLogs,
   useAdminOperationsOverview,
   useDeadLetterJobs,
+  useDeliveryTimeline,
+  useIncidents,
+  useOperationalAlerts,
   useProviderDeliveryEvents,
+  useProviderWebhookEvents,
+  useReliabilityOverview,
   useRetryDeadLetterJob,
   useRetryWorkerQueue,
+  useRunbooks,
   useWorkerQueue,
   useWorkerQueues,
 } from "@/features/admin/hooks/use-admin-operations";
@@ -38,9 +60,18 @@ const statuses = ["", "PENDING", "RUNNING", "RETRY_SCHEDULED", "DEAD_LETTER", "C
 export function AdminOperationsPage() {
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
+  const [runbookSearch, setRunbookSearch] = useState("");
+  const [alertSeverity, setAlertSeverity] = useState("");
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [selectedIncident, setSelectedIncident] = useState<IncidentLog | null>(null);
+  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
   const [eventStatus, setEventStatus] = useState("");
   const overviewQuery = useAdminOperationsOverview();
+  const reliabilityQuery = useReliabilityOverview();
+  const alertsQuery = useOperationalAlerts({ status: "ACTIVE", severity: alertSeverity });
+  const incidentsQuery = useIncidents({ status: "OPEN" });
+  const webhooksQuery = useProviderWebhookEvents({});
+  const runbooksQuery = useRunbooks({ search: runbookSearch });
   const queuesQuery = useWorkerQueues({ status, search });
   const deadLettersQuery = useDeadLetterJobs(search);
   const eventsQuery = useProviderDeliveryEvents({ status: eventStatus });
@@ -50,6 +81,11 @@ export function AdminOperationsPage() {
   const queues = useMemo(() => queuesQuery.data ?? [], [queuesQuery.data]);
   const deadLetters = deadLettersQuery.data ?? [];
   const providerEvents = eventsQuery.data ?? [];
+  const reliability = reliabilityQuery.data;
+  const alerts = alertsQuery.data ?? reliability?.alerts ?? [];
+  const incidents = incidentsQuery.data ?? reliability?.incidents ?? [];
+  const webhookEvents = webhooksQuery.data ?? reliability?.webhookEvents ?? [];
+  const runbooks = runbooksQuery.data ?? reliability?.runbooks ?? [];
   const failedJobs = useMemo(
     () => queues.filter((job) => job.status === "DEAD_LETTER" || job.status === "RETRY_SCHEDULED"),
     [queues]
@@ -57,6 +93,11 @@ export function AdminOperationsPage() {
 
   function refreshAll() {
     overviewQuery.refetch();
+    reliabilityQuery.refetch();
+    alertsQuery.refetch();
+    incidentsQuery.refetch();
+    webhooksQuery.refetch();
+    runbooksQuery.refetch();
     queuesQuery.refetch();
     deadLettersQuery.refetch();
     eventsQuery.refetch();
@@ -89,6 +130,8 @@ export function AdminOperationsPage() {
         </div>
       </section>
 
+      <IncidentBanner incidents={incidents} status={reliability?.status ?? overview?.status ?? "WAITING"} onOpen={setSelectedIncident} />
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={<MailCheck className="size-5" />}
@@ -110,15 +153,20 @@ export function AdminOperationsPage() {
         />
         <MetricCard
           icon={<ServerCog className="size-5" />}
-          label="Worker runs"
-          value={`${overview?.recentJobs.length ?? 0}`}
-          detail={`Observed ${formatDateTime(overview?.observedAt)}`}
+          label="Active alerts"
+          value={`${alerts.length}`}
+          detail={`${incidents.length} open incident group(s)`}
         />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
         <QueueHealthPanel queues={overview?.queues ?? []} />
         <ProviderStatusPanel providers={overview?.providers ?? []} notifications={overview?.notifications ?? []} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <AlertCenter alerts={alerts} severity={alertSeverity} onSeverityChange={setAlertSeverity} />
+        <IncidentPanel incidents={incidents} onOpen={setSelectedIncident} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -182,12 +230,19 @@ export function AdminOperationsPage() {
             </select>
           </CardHeader>
           <CardContent>
-            <ProviderEventTable events={providerEvents} />
+            <ProviderEventTable events={providerEvents} onOpenTimeline={setSelectedDeliveryId} />
           </CardContent>
         </Card>
       </section>
 
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <WebhookTimelinePanel events={webhookEvents} onOpenTimeline={setSelectedDeliveryId} />
+        <RunbookViewer runbooks={runbooks} search={runbookSearch} onSearchChange={setRunbookSearch} />
+      </section>
+
       <JobDetailSheet jobId={selectedJobId} onOpenChange={(open) => !open && setSelectedJobId(null)} />
+      <IncidentDetailSheet incident={selectedIncident} onOpenChange={(open) => !open && setSelectedIncident(null)} />
+      <DeliveryTimelineSheet deliveryId={selectedDeliveryId} onOpenChange={(open) => !open && setSelectedDeliveryId(null)} />
     </main>
   );
 }
@@ -220,6 +275,133 @@ function QueueHealthPanel({ queues }: { queues: QueueHealth[] }) {
                 <MiniCount label="DLQ" value={queue.deadLetter} />
               </div>
             </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function IncidentBanner({ incidents, status, onOpen }: { incidents: IncidentLog[]; status: string; onOpen: (incident: IncidentLog) => void }) {
+  const topIncident = incidents[0];
+  if (!topIncident) {
+    return (
+      <section className="flex flex-col gap-3 rounded-lg border border-success/25 bg-success/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-success/15 text-success">
+            <CheckCircle2 className="size-5" aria-hidden />
+          </span>
+          <div>
+            <p className="font-semibold">No active incident</p>
+            <p className="mt-1 text-sm text-muted-foreground">Reliability status is {status.toLowerCase()} with no open incident groups.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="flex flex-col gap-3 rounded-lg border border-warning/35 bg-warning/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-warning/15 text-warning">
+          <Siren className="size-5" aria-hidden />
+        </span>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold">{topIncident.title}</p>
+            <StatusPill status={topIncident.severity} compact />
+          </div>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{topIncident.summary}</p>
+        </div>
+      </div>
+      <Button variant="outline" onClick={() => onOpen(topIncident)}>
+        <ExternalLink className="size-4" aria-hidden />
+        Details
+      </Button>
+    </section>
+  );
+}
+
+function AlertCenter({ alerts, severity, onSeverityChange }: { alerts: OperationalAlert[]; severity: string; onSeverityChange: (value: string) => void }) {
+  const acknowledgeAlert = useAcknowledgeOperationalAlert();
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <CardTitle className="text-base">Alert center</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">Active operational alerts with acknowledgement and runbook pointers.</p>
+        </div>
+        <select
+          className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+          value={severity}
+          onChange={(event) => onSeverityChange(event.target.value)}
+        >
+          <option value="">All severities</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="WARNING">Warning</option>
+          <option value="INFO">Info</option>
+        </select>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {alerts.length === 0 ? (
+          <EmptyLine icon={<CheckCircle2 className="size-5" />} text="No active operational alerts." />
+        ) : (
+          alerts.map((alert) => (
+            <div key={alert.id} className="grid gap-3 rounded-lg border border-border/70 bg-background/70 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill status={alert.severity} compact />
+                    <p className="font-semibold">{alert.title}</p>
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{alert.summary}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={acknowledgeAlert.isPending || alert.status !== "ACTIVE"}
+                  onClick={() => acknowledgeAlert.mutate({ alertId: alert.id })}
+                >
+                  <CheckCircle2 className="size-4" aria-hidden />
+                  Acknowledge
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span>{alert.sourceType.replaceAll("_", " ")}</span>
+                <span>Last seen {formatDateTime(alert.lastSeenAt)}</span>
+                {alert.runbookSlug ? <span>Runbook {alert.runbookSlug.replaceAll("-", " ")}</span> : null}
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function IncidentPanel({ incidents, onOpen }: { incidents: IncidentLog[]; onOpen: (incident: IncidentLog) => void }) {
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader>
+        <CardTitle className="text-base">Incident groups</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-2">
+        {incidents.length === 0 ? (
+          <EmptyLine icon={<ShieldCheck className="size-5" />} text="No open incidents." />
+        ) : (
+          incidents.map((incident) => (
+            <button
+              key={incident.id}
+              type="button"
+              className="grid gap-2 rounded-lg border border-border/70 bg-background/65 p-3 text-left transition hover:border-primary/45"
+              onClick={() => onOpen(incident)}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">{incident.incidentKey.replaceAll("-", " ")}</p>
+                <StatusPill status={incident.severity} compact />
+              </div>
+              <p className="text-xs leading-5 text-muted-foreground">{incident.summary}</p>
+              <p className="text-xs text-muted-foreground">{incident.alertCount} alert(s) · {formatDateTime(incident.lastEventAt)}</p>
+            </button>
           ))
         )}
       </CardContent>
@@ -372,7 +554,7 @@ function DeadLetterPanel({ jobs, onSelectQueueJob }: { jobs: DeadLetterJob[]; on
   );
 }
 
-function ProviderEventTable({ events }: { events: ProviderDeliveryEvent[] }) {
+function ProviderEventTable({ events, onOpenTimeline }: { events: ProviderDeliveryEvent[]; onOpenTimeline: (deliveryId: string) => void }) {
   if (events.length === 0) {
     return <EmptyLine icon={<Activity className="size-5" />} text="Provider events will appear after delivery attempts." />;
   }
@@ -397,11 +579,114 @@ function ProviderEventTable({ events }: { events: ProviderDeliveryEvent[] }) {
               <td className="max-w-80 py-3 pr-3 text-xs text-muted-foreground">
                 <span className="line-clamp-2">{event.errorMessage ?? event.providerMessageId ?? event.eventType}</span>
               </td>
-              <td className="py-3 pr-3 text-muted-foreground">{formatDateTime(event.observedAt)}</td>
+              <td className="py-3 pr-3 text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span>{formatDateTime(event.observedAt)}</span>
+                  {event.notificationDeliveryId ? (
+                    <Button size="icon-xs" variant="ghost" title="Open delivery timeline" onClick={() => onOpenTimeline(event.notificationDeliveryId as string)}>
+                      <Activity className="size-3" aria-hidden />
+                    </Button>
+                  ) : null}
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function WebhookTimelinePanel({ events, onOpenTimeline }: { events: ProviderWebhookEvent[]; onOpenTimeline: (deliveryId: string) => void }) {
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle className="text-base">Webhook event timeline</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">Provider callbacks, replay detection, signature state, and delivery sync.</p>
+        </div>
+        <Webhook className="size-5 text-primary" aria-hidden />
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {events.length === 0 ? (
+          <EmptyLine icon={<Webhook className="size-5" />} text="Webhook callbacks will appear after providers post events." />
+        ) : (
+          events.map((event) => (
+            <div key={event.id} className="grid gap-2 rounded-lg border border-border/70 bg-background/65 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusPill status={event.normalizedStatus} compact />
+                  <p className="text-sm font-semibold">{event.provider} · {event.eventType.replaceAll("_", " ").toLowerCase()}</p>
+                </div>
+                <span className="text-xs text-muted-foreground">{formatDateTime(event.receivedAt)}</span>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span>{event.signatureValid ? "Signature verified" : "Signature failed"}</span>
+                <span>{event.duplicateEvent ? "Replay marked" : "First seen"}</span>
+                <span>{event.deliverySynced ? "Delivery synced" : event.failureReason ?? "No delivery sync"}</span>
+              </div>
+              {event.notificationDeliveryId ? (
+                <button className="w-fit text-xs font-medium text-primary" type="button" onClick={() => onOpenTimeline(event.notificationDeliveryId as string)}>
+                  Open delivery history
+                </button>
+              ) : null}
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RunbookViewer({ runbooks, search, onSearchChange }: { runbooks: RunbookEntry[]; search: string; onSearchChange: (value: string) => void }) {
+  return (
+    <Card className="rounded-lg border-border shadow-raised">
+      <CardHeader className="gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">Runbooks</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Searchable admin-only procedures for production reliability events.</p>
+          </div>
+          <BookOpen className="size-5 text-primary" aria-hidden />
+        </div>
+        <label className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input className="pl-9" placeholder="Search runbooks" value={search} onChange={(event) => onSearchChange(event.target.value)} />
+        </label>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        {runbooks.length === 0 ? (
+          <EmptyLine icon={<BookOpen className="size-5" />} text="No runbooks match the current search." />
+        ) : (
+          runbooks.map((runbook) => (
+            <details key={runbook.id} className="rounded-lg border border-border/70 bg-background/65 p-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                <span>
+                  <span className="block text-sm font-semibold">{runbook.title}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{runbook.category} · {runbook.severity.toLowerCase()}</span>
+                </span>
+                <StatusPill status={runbook.severity} compact />
+              </summary>
+              <div className="mt-3 grid gap-3 text-sm leading-6 text-muted-foreground">
+                <p>{runbook.summary}</p>
+                <RunbookBlock title="Symptoms" value={runbook.symptoms} />
+                <RunbookBlock title="Diagnosis" value={runbook.diagnosisSteps} />
+                <RunbookBlock title="Mitigation" value={runbook.mitigationSteps} />
+                {runbook.escalationNotes ? <RunbookBlock title="Escalation" value={runbook.escalationNotes} /> : null}
+              </div>
+            </details>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RunbookBlock({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
+      <p className="text-xs font-semibold uppercase text-foreground">{title}</p>
+      <p className="mt-1">{value}</p>
     </div>
   );
 }
@@ -475,6 +760,80 @@ function JobDetailSheet({ jobId, onOpenChange }: { jobId: string | null; onOpenC
             </div>
           </div>
         )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function IncidentDetailSheet({ incident, onOpenChange }: { incident: IncidentLog | null; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Sheet open={Boolean(incident)} onOpenChange={onOpenChange}>
+      <SheetContent className="w-[92vw] overflow-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Incident detail</SheetTitle>
+          <SheetDescription>Aggregated operational alert context and timeline signals.</SheetDescription>
+        </SheetHeader>
+        {incident ? (
+          <div className="grid gap-4 px-4 pb-4">
+            <div className="grid gap-2 rounded-lg border border-border bg-background/65 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold">{incident.incidentKey.replaceAll("-", " ")}</p>
+                <StatusPill status={incident.severity} compact />
+              </div>
+              <p className="text-sm leading-6 text-muted-foreground">{incident.summary}</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <DetailLine label="Status" value={incident.status.toLowerCase()} />
+              <DetailLine label="Alerts" value={`${incident.alertCount}`} />
+              <DetailLine label="Opened" value={formatDateTime(incident.openedAt)} />
+              <DetailLine label="Last event" value={formatDateTime(incident.lastEventAt)} />
+              <DetailLine label="Source" value={incident.primarySourceType.replaceAll("_", " ")} />
+              <DetailLine label="Source id" value={incident.primarySourceId ?? "Grouped signal"} />
+            </div>
+            <div className="rounded-lg border border-border bg-muted/25 p-3">
+              <p className="text-sm font-semibold">Operational note</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Use the linked alert runbooks and event timelines before retrying jobs. Keep the incident open until the active alert count returns to zero.
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DeliveryTimelineSheet({ deliveryId, onOpenChange }: { deliveryId: string | null; onOpenChange: (open: boolean) => void }) {
+  const timelineQuery = useDeliveryTimeline(deliveryId);
+  const events = timelineQuery.data ?? [];
+  return (
+    <Sheet open={Boolean(deliveryId)} onOpenChange={onOpenChange}>
+      <SheetContent className="w-[92vw] overflow-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Delivery status history</SheetTitle>
+          <SheetDescription>Provider attempts, webhook synchronization, and retry history for this delivery.</SheetDescription>
+        </SheetHeader>
+        <div className="grid gap-3 px-4 pb-4">
+          {!deliveryId || timelineQuery.isLoading ? (
+            <>
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </>
+          ) : events.length === 0 ? (
+            <EmptyLine icon={<Activity className="size-5" />} text="No timeline events have been recorded for this delivery." />
+          ) : (
+            events.map((event) => (
+              <div key={`${event.source}-${event.id}`} className="grid gap-2 rounded-lg border border-border/70 bg-background/65 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold">{event.source.replaceAll("_", " ")} · {event.provider}</p>
+                  <StatusPill status={event.status} compact />
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">{event.message}</p>
+                <p className="text-xs text-muted-foreground">{event.eventType.replaceAll("_", " ").toLowerCase()} · {formatDateTime(event.observedAt)}</p>
+              </div>
+            ))
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );

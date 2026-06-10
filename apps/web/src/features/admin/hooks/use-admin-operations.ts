@@ -2,10 +2,17 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  acknowledgeOperationalAlert,
   getAdminAuditLogs,
   getAdminOperationsOverview,
+  getDeliveryTimeline,
   getDeadLetterJobs,
+  getIncidents,
+  getOperationalAlerts,
   getProviderDeliveryEvents,
+  getProviderWebhookEvents,
+  getReliabilityOverview,
+  getRunbooks,
   getWorkerQueue,
   getWorkerQueues,
   retryDeadLetterJob,
@@ -63,6 +70,55 @@ export function useAdminAuditLogs() {
   });
 }
 
+export function useReliabilityOverview() {
+  return useQuery({
+    queryKey: [...adminOperationsKey, "reliability-overview"],
+    queryFn: getReliabilityOverview,
+    refetchInterval: 15_000,
+  });
+}
+
+export function useOperationalAlerts(filters: { status?: string; severity?: string }) {
+  return useQuery({
+    queryKey: [...adminOperationsKey, "alerts", filters],
+    queryFn: () => getOperationalAlerts({ ...filters, limit: 100 }),
+    refetchInterval: 15_000,
+  });
+}
+
+export function useIncidents(filters: { status?: string }) {
+  return useQuery({
+    queryKey: [...adminOperationsKey, "incidents", filters],
+    queryFn: () => getIncidents({ ...filters, limit: 60 }),
+    refetchInterval: 20_000,
+  });
+}
+
+export function useRunbooks(filters: { search?: string; severity?: string; category?: string }) {
+  return useQuery({
+    queryKey: [...adminOperationsKey, "runbooks", filters],
+    queryFn: () => getRunbooks({ ...filters, limit: 80 }),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useProviderWebhookEvents(filters: { provider?: string; status?: string }) {
+  return useQuery({
+    queryKey: [...adminOperationsKey, "webhook-events", filters],
+    queryFn: () => getProviderWebhookEvents({ ...filters, limit: 80 }),
+    refetchInterval: 20_000,
+  });
+}
+
+export function useDeliveryTimeline(deliveryId?: string | null) {
+  return useQuery({
+    queryKey: [...adminOperationsKey, "delivery-timeline", deliveryId],
+    queryFn: () => getDeliveryTimeline(deliveryId as string),
+    enabled: Boolean(deliveryId),
+    refetchInterval: 15_000,
+  });
+}
+
 export function useRetryWorkerQueue() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -78,6 +134,16 @@ export function useRetryDeadLetterJob() {
   return useMutation({
     mutationFn: ({ deadLetterId, reason }: { deadLetterId: string; reason?: string }) =>
       retryDeadLetterJob(deadLetterId, reason),
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: adminOperationsKey });
+    },
+  });
+}
+
+export function useAcknowledgeOperationalAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ alertId, note }: { alertId: string; note?: string }) => acknowledgeOperationalAlert(alertId, note),
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: adminOperationsKey });
     },
