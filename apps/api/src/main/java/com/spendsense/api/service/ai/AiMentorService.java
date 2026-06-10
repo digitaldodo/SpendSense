@@ -211,6 +211,9 @@ public class AiMentorService {
                 case "CATEGORY_SAVINGS_IMPACT" -> "What category hurts my savings most?";
                 case "HEALTH_SCORE_GUIDANCE" -> "How can I improve my financial health score?";
                 case "MONTHLY_CHANGE" -> "What changed compared to last month?";
+                case "RECOMMENDATION_EXPLANATION" -> "Explain the recommendation in my action center.";
+                case "HABIT_COACHING" -> "Explain my current financial habit momentum.";
+                case "WEEKLY_RECAP" -> "Give me a grounded weekly recap.";
                 default -> "Summarize my financial picture.";
             };
         }

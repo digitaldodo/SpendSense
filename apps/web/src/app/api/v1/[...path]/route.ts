@@ -69,6 +69,12 @@ async function fixtureFor(route: string, request: NextRequest) {
   if (route === "/transactions/dashboard-summary") {
     return dashboardFixture;
   }
+  if (route === "/actions/dashboard") {
+    return smartActionDashboardFixture;
+  }
+  if (route.startsWith("/actions/")) {
+    return smartActionDashboardFixture.actions[0];
+  }
   if (route === "/accounts") {
     return dashboardFixture.accounts;
   }
@@ -217,6 +223,170 @@ const dashboardFixture = {
   },
   budgets: [],
   savingsGoals: [],
+};
+
+const smartActionDashboardFixture = {
+  generatedAt: "2026-06-11T00:00:00Z",
+  dailySummary: {
+    headline: "You are protecting positive cashflow.",
+    monthIncome: 125000,
+    monthSpend: 42000,
+    netCashflow: 83000,
+    savingsRate: 66,
+    tone: "SUPPORTIVE",
+    explanation: "Uses current month posted income minus posted debits; excluded transactions are not counted.",
+  },
+  todayFocus: {
+    title: "Move a calm surplus into savings",
+    body: "Your month-to-date cashflow is positive. Moving INR 5000 keeps the action grounded in actual surplus.",
+    focusType: "SMART_SAVINGS",
+    impactAmount: 5000,
+    actionId: "action-1",
+  },
+  actions: [
+    {
+      id: "action-1",
+      actionType: "SMART_SAVINGS",
+      category: "SAVINGS",
+      status: "OPEN",
+      priority: 82,
+      title: "Move a calm surplus into savings",
+      body: "Your month-to-date cashflow is positive. Moving INR 5000 keeps the action grounded in actual surplus.",
+      explanation: "Calculated as 25% of current positive net cashflow, capped at INR 5000. No future income or investment return is assumed.",
+      impactAmount: 5000,
+      impactPercent: 4,
+      currency: "INR",
+      sourceType: "MONTHLY_CASHFLOW",
+      sourceId: "2026-06",
+      dueOn: "2026-06-13",
+      snoozedUntil: null,
+      completedAt: null,
+      dismissedAt: null,
+      generatedAt: "2026-06-11T00:00:00Z",
+    },
+    {
+      id: "action-2",
+      actionType: "SUBSCRIPTION_CLEANUP",
+      category: "SUBSCRIPTIONS",
+      status: "OPEN",
+      priority: 70,
+      title: "Review recurring subscriptions",
+      body: "3 recurring payments total INR 2499 and represent 6% of current month spending.",
+      explanation: "Recurring payments are detected from repeated posted debits with similar amount and cadence.",
+      impactAmount: 2499,
+      impactPercent: 6,
+      currency: "INR",
+      sourceType: "RECURRING_DEBITS",
+      sourceId: "2026-06",
+      dueOn: "2026-06-16",
+      snoozedUntil: null,
+      completedAt: null,
+      dismissedAt: null,
+      generatedAt: "2026-06-11T00:00:00Z",
+    },
+  ],
+  streaks: [
+    {
+      id: "streak-1",
+      streakKey: "daily_spend_run_rate",
+      label: "Daily spending stayed within run-rate",
+      currentCount: 4,
+      bestCount: 4,
+      unit: "days",
+      state: "MOMENTUM",
+      lastQualifiedOn: "2026-06-11",
+      explanation: "4 day(s) in a row stayed at or below the deterministic daily run-rate of INR 1500.",
+    },
+    {
+      id: "streak-2",
+      streakKey: "positive_cashflow_months",
+      label: "Positive cashflow months",
+      currentCount: 3,
+      bestCount: 3,
+      unit: "months",
+      state: "MOMENTUM",
+      lastQualifiedOn: "2026-06-01",
+      explanation: "Income has stayed ahead of posted spending for 3 month(s).",
+    },
+  ],
+  weeklyCheckIn: {
+    id: "week-1",
+    weekStart: "2026-06-08",
+    weekEnd: "2026-06-14",
+    status: "GENERATED",
+    headline: "This week is about protecting the surplus already visible.",
+    wins: ["Income is ahead of posted spending this month.", "Daily spending stayed within run-rate: 4 days"],
+    focus: ["Move a calm surplus into savings", "Review recurring subscriptions"],
+    generatedAt: "2026-06-11T00:00:00Z",
+    completedAt: null,
+  },
+  milestones: [
+    {
+      type: "CASHFLOW_WIN",
+      title: "Cashflow stayed positive",
+      body: "Income is ahead of current posted spending.",
+      value: 83000,
+      state: "HEALTHY",
+    },
+  ],
+  reminders: [
+    {
+      type: "SMART_SAVINGS",
+      title: "Move a calm surplus into savings",
+      body: "Your month-to-date cashflow is positive.",
+      actionId: "action-1",
+      remindAt: null,
+      state: "OPEN",
+    },
+  ],
+  behaviorTimeline: [
+    {
+      label: "2026-01",
+      body: "Net cashflow INR 82000 with INR 38000 spending.",
+      occurredOn: "2026-01-01",
+      value: 82000,
+      state: "HEALTHY",
+    },
+    {
+      label: "2026-02",
+      body: "Net cashflow INR 81000 with INR 41000 spending.",
+      occurredOn: "2026-02-01",
+      value: 81000,
+      state: "HEALTHY",
+    },
+    {
+      label: "2026-03",
+      body: "Net cashflow INR 83000 with INR 42000 spending.",
+      occurredOn: "2026-03-01",
+      value: 83000,
+      state: "HEALTHY",
+    },
+  ],
+  journey: {
+    score: 74,
+    state: "HEALTHY",
+    headline: "Your journey score blends current savings rate, habit momentum, and completed grounded actions.",
+    steps: [
+      {
+        label: "Awareness",
+        state: "HEALTHY",
+        progress: 48,
+        explanation: "Monthly comparisons are available from imported transactions.",
+      },
+      {
+        label: "Stability",
+        state: "HEALTHY",
+        progress: 66,
+        explanation: "Current month savings rate is measured from posted cashflow.",
+      },
+      {
+        label: "Action",
+        state: "STEADY",
+        progress: 0,
+        explanation: "Completed actions are counted without streak pressure or rewards.",
+      },
+    ],
+  },
 };
 
 const notificationPreferencesFixture = {

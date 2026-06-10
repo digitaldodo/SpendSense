@@ -5,12 +5,15 @@ import {
   addGoalContribution,
   bulkUpdateTransactions,
   calculateProjection,
+  completeSmartAction,
+  completeWeeklyCheckIn,
   correctAccountBalance,
   createBudget,
   createCategory,
   createSavingsGoal,
   deleteBudget,
   deleteSavingsGoal,
+  dismissSmartAction,
   getAccounts,
   getAiConversation,
   getAiConversations,
@@ -23,6 +26,7 @@ import {
   getFinancialHealthBreakdown,
   getMonthlyReport,
   getSavingsGoals,
+  getSmartActionDashboard,
   getTransactionDetail,
   getTransactions,
   materializeBudgetRollovers,
@@ -32,6 +36,7 @@ import {
   sendAiFeedback,
   sendAiMessage,
   simulateAffordability,
+  snoozeSmartAction,
   updateBudget,
   updateCategory,
   updateSavingsGoal,
@@ -50,6 +55,7 @@ import type {
   GoalContributionPayload,
   ProjectionPayload,
   SavingsGoalPayload,
+  SmartActionStatePayload,
   TransactionFilters,
   TransactionUpdatePayload,
 } from "@/features/finance/types";
@@ -65,12 +71,65 @@ export const financialHealthBreakdownQueryKey = ["finance", "financial-health-br
 export const monthlyReportQueryKey = ["finance", "reports", "monthly"] as const;
 export const aiConversationsQueryKey = ["finance", "ai", "conversations"] as const;
 export const aiInsightTimelineQueryKey = ["finance", "ai", "insight-timeline"] as const;
+export const smartActionDashboardQueryKey = ["finance", "smart-actions", "dashboard"] as const;
 
 export function useDashboardFinanceSummary() {
   return useQuery({
     queryKey: financeSummaryQueryKey,
     queryFn: getDashboardFinanceSummary,
     staleTime: 2 * 60_000,
+  });
+}
+
+export function useSmartActionDashboard() {
+  return useQuery({
+    queryKey: smartActionDashboardQueryKey,
+    queryFn: getSmartActionDashboard,
+    staleTime: 60_000,
+  });
+}
+
+export function useCompleteSmartAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ actionId, payload }: { actionId: string; payload?: SmartActionStatePayload }) =>
+      completeSmartAction(actionId, payload),
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: smartActionDashboardQueryKey });
+      queryClient.invalidateQueries({ queryKey: financeSummaryQueryKey });
+    },
+  });
+}
+
+export function useDismissSmartAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ actionId, payload }: { actionId: string; payload?: SmartActionStatePayload }) =>
+      dismissSmartAction(actionId, payload),
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: smartActionDashboardQueryKey });
+    },
+  });
+}
+
+export function useSnoozeSmartAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ actionId, payload }: { actionId: string; payload?: SmartActionStatePayload }) =>
+      snoozeSmartAction(actionId, payload),
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: smartActionDashboardQueryKey });
+    },
+  });
+}
+
+export function useCompleteWeeklyCheckIn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: completeWeeklyCheckIn,
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: smartActionDashboardQueryKey });
+    },
   });
 }
 

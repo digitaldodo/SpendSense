@@ -43,6 +43,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FinancialCard } from "@/features/finance/components/financial-card";
+import { SmartEngagementPanel } from "@/features/finance/components/smart-engagement-panel";
 import { TransactionList } from "@/features/finance/components/transaction-list";
 import {
   useAccounts,
@@ -199,6 +200,8 @@ export function DashboardOverview() {
       </section>
 
       <DashboardInsightStrip summary={summary} />
+
+      <SmartEngagementPanel />
 
       <DeferredDashboardWorkspace summary={summary} />
     </main>

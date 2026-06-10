@@ -697,6 +697,126 @@ export type DashboardFinanceSummary = {
   notificationDashboard: NotificationDashboard;
 };
 
+export type DailyFinancialSummary = {
+  headline: string;
+  monthIncome: number;
+  monthSpend: number;
+  netCashflow: number;
+  savingsRate: number;
+  tone: string;
+  explanation: string;
+};
+
+export type FinancialFocus = {
+  title: string;
+  body: string;
+  focusType: string;
+  impactAmount: number;
+  actionId?: string | null;
+};
+
+export type SmartAction = {
+  id: string;
+  actionType: string;
+  category: string;
+  status: "OPEN" | "SNOOZED" | "COMPLETED" | "DISMISSED" | string;
+  priority: number;
+  title: string;
+  body: string;
+  explanation: string;
+  impactAmount: number;
+  impactPercent: number;
+  currency: string;
+  sourceType: string;
+  sourceId?: string | null;
+  dueOn?: string | null;
+  snoozedUntil?: string | null;
+  completedAt?: string | null;
+  dismissedAt?: string | null;
+  generatedAt: string;
+};
+
+export type HabitStreak = {
+  id: string;
+  streakKey: string;
+  label: string;
+  currentCount: number;
+  bestCount: number;
+  unit: string;
+  state: string;
+  lastQualifiedOn?: string | null;
+  explanation: string;
+};
+
+export type WeeklyCheckIn = {
+  id: string;
+  weekStart: string;
+  weekEnd: string;
+  status: "GENERATED" | "COMPLETED" | string;
+  headline: string;
+  wins: string[];
+  focus: string[];
+  generatedAt: string;
+  completedAt?: string | null;
+};
+
+export type FinancialMilestone = {
+  type: string;
+  title: string;
+  body: string;
+  value: number;
+  state: string;
+};
+
+export type SmartReminder = {
+  type: string;
+  title: string;
+  body: string;
+  actionId?: string | null;
+  remindAt?: string | null;
+  state: string;
+};
+
+export type BehaviorTimelineItem = {
+  label: string;
+  body: string;
+  occurredOn: string;
+  value: number;
+  state: string;
+};
+
+export type JourneyStep = {
+  label: string;
+  state: string;
+  progress: number;
+  explanation: string;
+};
+
+export type FinancialJourney = {
+  score: number;
+  state: string;
+  headline: string;
+  steps: JourneyStep[];
+};
+
+export type SmartActionDashboard = {
+  generatedAt: string;
+  dailySummary: DailyFinancialSummary;
+  todayFocus: FinancialFocus;
+  actions: SmartAction[];
+  streaks: HabitStreak[];
+  weeklyCheckIn: WeeklyCheckIn;
+  milestones: FinancialMilestone[];
+  reminders: SmartReminder[];
+  behaviorTimeline: BehaviorTimelineItem[];
+  journey: FinancialJourney;
+};
+
+export type SmartActionStatePayload = {
+  reason?: string;
+  snoozedUntil?: string;
+};
+
 export type DemoSeedResult = {
   accountsCreated: number;
   transactionsCreated: number;

@@ -62,6 +62,15 @@ class AiSafetyService {
         if (containsAny(lowerPrompt, "goal", "saving target")) {
             return "GOAL_GUIDANCE";
         }
+        if (containsAny(lowerPrompt, "recommendation", "smart action", "action center", "suggestion")) {
+            return "RECOMMENDATION_EXPLANATION";
+        }
+        if (containsAny(lowerPrompt, "weekly", "recap", "check-in", "check in")) {
+            return "WEEKLY_RECAP";
+        }
+        if (containsAny(lowerPrompt, "habit", "streak", "routine")) {
+            return "HABIT_COACHING";
+        }
         if (containsAny(lowerPrompt, "budget")) {
             return "BUDGET_GUIDANCE";
         }

@@ -36,6 +36,9 @@ import type {
   ProjectionPayload,
   SavingsGoal,
   SavingsGoalPayload,
+  SmartAction,
+  SmartActionDashboard,
+  SmartActionStatePayload,
   Transaction,
   TransactionDetail,
   TransactionFilters,
@@ -214,6 +217,55 @@ export async function correctAccountBalance(accountId: string, payload: BalanceC
 export async function getDashboardFinanceSummary() {
   const response = await authenticatedApiClient<ApiResponse<DashboardFinanceSummary>>(
     "/api/v1/transactions/dashboard-summary"
+  );
+  return response.data;
+}
+
+export async function getSmartActionDashboard() {
+  const response =
+    await authenticatedApiClient<ApiResponse<SmartActionDashboard>>("/api/v1/actions/dashboard");
+  return response.data;
+}
+
+export async function completeSmartAction(actionId: string, payload: SmartActionStatePayload = {}) {
+  const response = await authenticatedApiClient<ApiResponse<SmartAction>>(
+    `/api/v1/actions/${actionId}/complete`,
+    {
+      method: "POST",
+      body: payload,
+    }
+  );
+  return response.data;
+}
+
+export async function dismissSmartAction(actionId: string, payload: SmartActionStatePayload = {}) {
+  const response = await authenticatedApiClient<ApiResponse<SmartAction>>(
+    `/api/v1/actions/${actionId}/dismiss`,
+    {
+      method: "POST",
+      body: payload,
+    }
+  );
+  return response.data;
+}
+
+export async function snoozeSmartAction(actionId: string, payload: SmartActionStatePayload = {}) {
+  const response = await authenticatedApiClient<ApiResponse<SmartAction>>(
+    `/api/v1/actions/${actionId}/snooze`,
+    {
+      method: "POST",
+      body: payload,
+    }
+  );
+  return response.data;
+}
+
+export async function completeWeeklyCheckIn() {
+  const response = await authenticatedApiClient<ApiResponse<SmartActionDashboard["weeklyCheckIn"]>>(
+    "/api/v1/actions/weekly-check-in/complete",
+    {
+      method: "POST",
+    }
   );
   return response.data;
 }

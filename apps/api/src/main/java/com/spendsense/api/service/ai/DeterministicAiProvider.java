@@ -40,6 +40,9 @@ class DeterministicAiProvider implements AiProvider {
                 case "HEALTH_SCORE_GUIDANCE" -> healthResponse(request.context());
                 case "MONTHLY_CHANGE" -> monthlyChangeResponse(request.context());
                 case "GOAL_GUIDANCE" -> goalsResponse(request.context());
+                case "RECOMMENDATION_EXPLANATION" -> recommendationResponse(request.context());
+                case "HABIT_COACHING" -> habitResponse(request.context());
+                case "WEEKLY_RECAP" -> weeklyRecapResponse(request.context());
                 default -> summaryResponse(request.context());
             };
             cards = insightCards(request.intent(), request.context());
@@ -177,6 +180,66 @@ class DeterministicAiProvider implements AiProvider {
                 """.formatted(goal.name(), money(goal.currentAmount()), money(goal.targetAmount()), pct(goal.progressPercent()), money(context.averageFreeCashflow()));
     }
 
+    private String recommendationResponse(AiFinancialContext context) {
+        CategoryTrendInsightResponse category = topCategory(context).orElse(null);
+        AiFinancialContext.BudgetFact budget = context.budgets().stream()
+                .filter(item -> item.usagePercent().compareTo(BigDecimal.valueOf(80)) >= 0)
+                .findFirst()
+                .orElse(null);
+        if (budget != null) {
+            return """
+                    This recommendation is grounded in budget usage. %s is at %s usage, with %s spent against a %s budget.
+
+                    The logic is explainable: SpendSense compares current-month posted debits in that budget category against the active budget amount. If usage is near or above the limit, it suggests a recovery action instead of changing the budget automatically.
+
+                    A calm next step is to inspect the largest merchants in that category and complete the action only when you have actually made the adjustment.
+                    """.formatted(budget.name(), pct(budget.usagePercent()), money(budget.spent()), money(budget.amount()));
+        }
+        if (category != null) {
+            return """
+                    This recommendation is grounded in category movement. %s is currently %s against a recent average of %s.
+
+                    The logic is deterministic: SpendSense compares posted debit totals by category and suggests a bounded reduction only when the category is large enough to affect cashflow. It does not assume future behavior or make an automatic change.
+
+                    Treat it as a review prompt: confirm whether the spend was necessary, recurring, or flexible before acting.
+                    """.formatted(category.categoryName(), money(category.currentSpend()), money(category.previousAverage()));
+        }
+        return "The current recommendation set is light because there is no strong budget pressure or category spike in the compact context. SpendSense will keep using posted transactions, budgets, goals, and recurring-payment detection only.";
+    }
+
+    private String habitResponse(AiFinancialContext context) {
+        MonthlyComparisonResponse latest = context.latestMonth();
+        long positiveMonths = context.categoryTrends().isEmpty()
+                ? 0
+                : context.budgets().stream().filter(budget -> budget.usagePercent().compareTo(BigDecimal.valueOf(100)) < 0).count();
+        String budgetLine = positiveMonths == 0
+                ? "I do not see enough active budget momentum in the compact context."
+                : "%d budget area(s) are still below their limit in the compact context.".formatted(positiveMonths);
+        return """
+                Your habit signal is based on measured behavior, not pressure. Current month net cashflow is %s and savings rate is %s.
+
+                %s Habit coaching should stay practical: protect positive cashflow when it exists, recover one category when it does not, and avoid treating a streak as a moral score.
+
+                SpendSense uses these signals to support awareness, not to create urgency or fake rewards.
+                """.formatted(money(latest.netCashflow()), pct(latest.savingsRate()), budgetLine);
+    }
+
+    private String weeklyRecapResponse(AiFinancialContext context) {
+        MonthlyComparisonResponse latest = context.latestMonth();
+        MonthlyComparisonResponse previous = context.previousMonth();
+        CategoryTrendInsightResponse category = topCategory(context).orElse(null);
+        String categoryLine = category == null
+                ? "No category has enough movement to highlight confidently."
+                : "%s is the main category to review at %s, compared with %s recently.".formatted(category.categoryName(), money(category.currentSpend()), money(category.previousAverage()));
+        return """
+                Here is the grounded weekly recap: this month income is %s, spending is %s, and net cashflow is %s.
+
+                Compared with the previous reviewed month, spending changed by %s and income changed by %s. %s
+
+                The useful focus for the week is one action only: either protect the visible surplus or recover the category creating the most pressure. This recap is based on SpendSense summaries only, not predictions.
+                """.formatted(money(latest.income()), money(latest.expense()), money(latest.netCashflow()), money(latest.expenseChange()), money(latest.incomeChange()), categoryLine);
+    }
+
     private List<AiInsightCardResponse> insightCards(String intent, AiFinancialContext context) {
         List<AiInsightCardResponse> cards = new ArrayList<>();
         MonthlyComparisonResponse latest = context.latestMonth();
@@ -189,6 +252,9 @@ class DeterministicAiProvider implements AiProvider {
         if (cards.size() == 1 && intent.equals("EMI_SAFETY")) {
             cards.add(new AiInsightCardResponse("EMI_ROOM", "HEALTHY", "EMI room estimate", "Uses income and free cashflow caps before any proposed EMI is entered.", context.averageFreeCashflow().max(BigDecimal.ZERO), context.averageIncome(), "Ask about EMI", "EMI_SAFETY"));
         }
+        if (intent.equals("RECOMMENDATION_EXPLANATION") || intent.equals("HABIT_COACHING") || intent.equals("WEEKLY_RECAP")) {
+            cards.add(new AiInsightCardResponse("HABIT_CONTEXT", latest.netCashflow().signum() >= 0 ? "HEALTHY" : "CAUTION", "Grounded coaching context", "Uses cashflow, budget pressure, and category movement only.", latest.netCashflow(), context.previousMonth().netCashflow(), "Explain recommendation", "RECOMMENDATION_EXPLANATION"));
+        }
         return cards.stream().limit(3).toList();
     }
 
@@ -198,6 +264,9 @@ class DeterministicAiProvider implements AiProvider {
             case "EMI_SAFETY" -> List.of("What EMI amount stays comfortable?", "How would this affect my goal?", "Explain the safe EMI calculation");
             case "CATEGORY_SAVINGS_IMPACT" -> List.of("Show the merchants behind this category", "How can I reduce this calmly?", "Compare this category with last month");
             case "HEALTH_SCORE_GUIDANCE" -> List.of("Which indicator should I improve first?", "How does budget pressure affect the score?", "What is one low-risk next step?");
+            case "RECOMMENDATION_EXPLANATION" -> List.of("Why did this action appear?", "What data supports this?", "How should I complete it?");
+            case "HABIT_COACHING" -> List.of("What habit is improving?", "What should I avoid pressuring?", "What is one calm action today?");
+            case "WEEKLY_RECAP" -> List.of("What changed this week?", "What should be my focus?", "Explain the biggest category shift");
             default -> defaultFollowUps();
         };
     }

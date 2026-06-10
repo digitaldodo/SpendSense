@@ -88,6 +88,131 @@ const dashboardSummary = {
   savingsGoals: [],
 };
 
+const smartActionDashboard = {
+  generatedAt: "2026-06-11T00:00:00Z",
+  dailySummary: {
+    headline: "You are protecting positive cashflow.",
+    monthIncome: 125000,
+    monthSpend: 42000,
+    netCashflow: 83000,
+    savingsRate: 66,
+    tone: "SUPPORTIVE",
+    explanation: "Uses current month posted income minus posted debits.",
+  },
+  todayFocus: {
+    title: "Move a calm surplus into savings",
+    body: "Your month-to-date cashflow is positive.",
+    focusType: "SMART_SAVINGS",
+    impactAmount: 5000,
+    actionId: "action-1",
+  },
+  actions: [
+    {
+      id: "action-1",
+      actionType: "SMART_SAVINGS",
+      category: "SAVINGS",
+      status: "OPEN",
+      priority: 82,
+      title: "Move a calm surplus into savings",
+      body: "Moving ₹5,000 keeps the action grounded in actual surplus.",
+      explanation: "Calculated as 25% of current positive net cashflow, capped at INR 5000.",
+      impactAmount: 5000,
+      impactPercent: 4,
+      currency: "INR",
+      sourceType: "MONTHLY_CASHFLOW",
+      sourceId: "2026-06",
+      dueOn: "2026-06-13",
+      snoozedUntil: null,
+      completedAt: null,
+      dismissedAt: null,
+      generatedAt: "2026-06-11T00:00:00Z",
+    },
+  ],
+  streaks: [
+    {
+      id: "streak-1",
+      streakKey: "daily_spend_run_rate",
+      label: "Daily spending stayed within run-rate",
+      currentCount: 4,
+      bestCount: 4,
+      unit: "days",
+      state: "MOMENTUM",
+      lastQualifiedOn: "2026-06-11",
+      explanation: "4 day(s) in a row stayed at or below the deterministic daily run-rate.",
+    },
+  ],
+  weeklyCheckIn: {
+    id: "week-1",
+    weekStart: "2026-06-08",
+    weekEnd: "2026-06-14",
+    status: "GENERATED",
+    headline: "This week is about protecting the surplus already visible.",
+    wins: ["Income is ahead of posted spending this month."],
+    focus: ["Move a calm surplus into savings"],
+    generatedAt: "2026-06-11T00:00:00Z",
+    completedAt: null,
+  },
+  milestones: [
+    {
+      type: "CASHFLOW_WIN",
+      title: "Cashflow stayed positive",
+      body: "Income is ahead of current posted spending.",
+      value: 83000,
+      state: "HEALTHY",
+    },
+  ],
+  reminders: [
+    {
+      type: "SMART_SAVINGS",
+      title: "Move a calm surplus into savings",
+      body: "Your month-to-date cashflow is positive.",
+      actionId: "action-1",
+      remindAt: null,
+      state: "OPEN",
+    },
+  ],
+  behaviorTimeline: [
+    {
+      label: "2026-06",
+      body: "Net cashflow ₹83,000 with ₹42,000 spending.",
+      occurredOn: "2026-06-01",
+      value: 83000,
+      state: "HEALTHY",
+    },
+  ],
+  journey: {
+    score: 74,
+    state: "HEALTHY",
+    headline: "Your journey score blends current savings rate, habit momentum, and completed grounded actions.",
+    steps: [
+      {
+        label: "Awareness",
+        state: "HEALTHY",
+        progress: 48,
+        explanation: "Monthly comparisons are available.",
+      },
+    ],
+  },
+};
+type MockSmartAction = Omit<
+  (typeof smartActionDashboard.actions)[number],
+  "completedAt" | "status"
+> & {
+  completedAt: string | null;
+  status: string;
+};
+type MockWeeklyCheckIn = Omit<typeof smartActionDashboard.weeklyCheckIn, "completedAt" | "status"> & {
+  completedAt: string | null;
+  status: string;
+};
+type MockSmartActionDashboard = Omit<
+  typeof smartActionDashboard,
+  "actions" | "weeklyCheckIn"
+> & {
+  actions: MockSmartAction[];
+  weeklyCheckIn: MockWeeklyCheckIn;
+};
+
 test.beforeEach(async ({ page }) => {
   await page.context().addCookies([
     {
@@ -129,6 +254,10 @@ test("authenticated dashboard renders financial data and accessible chart labels
 
   await expect(page.getByRole("heading", { name: /Your money view/i })).toBeVisible();
   await expect(page.getByText("Account balance")).toBeVisible();
+  await expect(page.getByText("Daily financial summary")).toBeVisible();
+  await expect(page.getByText("Smart action center")).toBeVisible();
+  await page.getByRole("button", { name: "Done" }).first().click();
+  await expect(page.locator("#smart-actions").getByText("Complete", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("img", { name: "Monthly spending trend" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Notifications" })).toBeVisible();
   await page.keyboard.press("Tab");
@@ -211,6 +340,7 @@ test("mobile layout keeps primary navigation reachable", async ({ page, isMobile
 
 async function mockApi(page: Page, options: MockOptions = {}) {
   let profile = userProfile(options);
+  let actionsDashboard: MockSmartActionDashboard = structuredClone(smartActionDashboard);
 
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
@@ -244,6 +374,34 @@ async function mockApi(page: Page, options: MockOptions = {}) {
     }
     if (path === "/api/v1/transactions/dashboard-summary") {
       return json(route, dashboardSummary);
+    }
+    if (path === "/api/v1/actions/dashboard") {
+      return json(route, actionsDashboard);
+    }
+    if (path === "/api/v1/actions/action-1/complete") {
+      actionsDashboard = {
+        ...actionsDashboard,
+        actions: actionsDashboard.actions.map((action) =>
+          action.id === "action-1"
+            ? { ...action, status: "COMPLETED", completedAt: "2026-06-11T00:01:00Z" }
+            : action
+        ),
+      };
+      return json(route, actionsDashboard.actions[0]);
+    }
+    if (path === "/api/v1/actions/action-1/dismiss" || path === "/api/v1/actions/action-1/snooze") {
+      return json(route, actionsDashboard.actions[0]);
+    }
+    if (path === "/api/v1/actions/weekly-check-in/complete") {
+      actionsDashboard = {
+        ...actionsDashboard,
+        weeklyCheckIn: {
+          ...actionsDashboard.weeklyCheckIn,
+          status: "COMPLETED",
+          completedAt: "2026-06-11T00:02:00Z",
+        },
+      };
+      return json(route, actionsDashboard.weeklyCheckIn);
     }
     if (path === "/api/v1/accounts") {
       return json(route, dashboardSummary.accounts);
