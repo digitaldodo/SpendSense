@@ -29,12 +29,17 @@ const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/dashboard#transactions", label: "Transactions", icon: ReceiptText },
   { href: "/insights", label: "Insights", icon: BarChart3 },
+  { href: "/mentor", label: "Mentor", icon: Sparkles },
   { href: "/notifications", label: "Alerts", icon: Bell },
   { href: "/imports", label: "Import", icon: FileUp },
   { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/admin/operations", label: "Admin", icon: ShieldCheck, adminOnly: true },
   { href: "/dashboard", label: "Profile", icon: UserRound },
 ] as const;
+
+const mobileNavItems = navItems.filter((item) =>
+  ["Home", "Insights", "Mentor", "Import", "Alerts"].includes(item.label)
+);
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
@@ -51,6 +56,28 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
   const profile = profileQuery.data;
   const displayName = profile?.displayName || profile?.email?.split("@")[0] || "there";
   const unreadCount = notificationSummaryQuery.data?.unreadCount ?? 0;
+
+  function isNavActive(item: (typeof navItems)[number], index: number) {
+    if (item.href === "/accounts") {
+      return pathname === "/accounts";
+    }
+    if (item.href === "/admin/operations") {
+      return pathname.startsWith("/admin");
+    }
+    if (item.href === "/imports") {
+      return pathname.startsWith("/imports");
+    }
+    if (item.href === "/insights") {
+      return pathname.startsWith("/insights");
+    }
+    if (item.href === "/mentor") {
+      return pathname.startsWith("/mentor");
+    }
+    if (item.href === "/notifications") {
+      return pathname.startsWith("/notifications");
+    }
+    return index === 0 && pathname === "/dashboard";
+  }
 
   useEffect(() => {
     function focusSkipLink(event: KeyboardEvent) {
@@ -97,18 +124,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                 .filter((item) => !("adminOnly" in item) || profile?.roles.includes("ADMIN"))
                 .map((item, index) => {
                   const Icon = item.icon;
-                  const active =
-                    item.href === "/accounts"
-                      ? pathname === "/accounts"
-                      : item.href === "/admin/operations"
-                        ? pathname.startsWith("/admin")
-                        : item.href === "/imports"
-                          ? pathname.startsWith("/imports")
-                          : item.href === "/insights"
-                            ? pathname.startsWith("/insights")
-                            : item.href === "/notifications"
-                              ? pathname.startsWith("/notifications")
-                              : index === 0 && pathname === "/dashboard";
+                  const active = isNavActive(item, index);
                   return (
                     <Link
                       key={`${item.label}-${index}`}
@@ -208,22 +224,11 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
         aria-label="Mobile primary"
       >
         <div className="mx-auto grid max-w-2xl grid-cols-[repeat(auto-fit,minmax(3.75rem,1fr))] gap-1">
-          {navItems
+          {mobileNavItems
             .filter((item) => !("adminOnly" in item) || profile?.roles.includes("ADMIN"))
             .map((item, index) => {
               const Icon = item.icon;
-              const active =
-                item.href === "/accounts"
-                  ? pathname === "/accounts"
-                  : item.href === "/admin/operations"
-                    ? pathname.startsWith("/admin")
-                    : item.href === "/imports"
-                      ? pathname.startsWith("/imports")
-                      : item.href === "/insights"
-                        ? pathname.startsWith("/insights")
-                        : item.href === "/notifications"
-                          ? pathname.startsWith("/notifications")
-                          : index === 0 && pathname === "/dashboard";
+              const active = isNavActive(item, index);
               return (
                 <Link
                   key={`${item.label}-mobile-${index}`}

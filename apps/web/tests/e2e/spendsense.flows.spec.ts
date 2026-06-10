@@ -185,6 +185,18 @@ test("notification flow marks messages read and shows delivery status", async ({
   await expect(page.getByText("Delivery history")).toBeVisible();
 });
 
+test("ai mentor explains spending with grounded cards", async ({ page }) => {
+  await mockApi(page);
+
+  await page.goto("/mentor");
+
+  await expect(page.getByRole("heading", { name: "Financial mentor" })).toBeVisible();
+  await page.getByRole("button", { name: "Ask Why did I overspend this month?" }).click();
+  await expect(page.getByText("Food is above its recent baseline")).toBeVisible();
+  await expect(page.getByText("Grounded in your ledger")).toBeVisible();
+  await expect(page.getByRole("button", { name: "What changed compared to last month?" })).toBeVisible();
+});
+
 test("mobile layout keeps primary navigation reachable", async ({ page, isMobile }) => {
   test.skip(!isMobile, "mobile-only responsive check");
   await mockApi(page);
@@ -393,6 +405,110 @@ async function mockApi(page: Page, options: MockOptions = {}) {
     }
     if (path === "/api/v1/notifications/email-preview") {
       return json(route, { subject: "SpendSense summary", html: "<p>Ready</p>", text: "Ready" });
+    }
+    if (path === "/api/v1/ai/conversations" && request.method() === "GET") {
+      return json(route, []);
+    }
+    if (path === "/api/v1/ai/insights/timeline") {
+      return json(route, [
+        {
+          type: "CASHFLOW",
+          state: "HEALTHY",
+          title: "Current cashflow",
+          body: "Income minus posted spending for the current month.",
+          primaryValue: 83000,
+          comparisonValue: 81000,
+          actionLabel: "Explain change",
+          actionIntent: "MONTHLY_CHANGE",
+        },
+      ]);
+    }
+    if (path === "/api/v1/ai/conversations/messages" && request.method() === "POST") {
+      return json(route, {
+        conversation: {
+          id: "ai-conversation-1",
+          title: "Why did I overspend this month?",
+          status: "ACTIVE",
+          contextScope: "FINANCIAL_WORKSPACE",
+          lastMessageAt: "2026-06-10T08:00:00Z",
+          createdAt: "2026-06-10T08:00:00Z",
+          lastMessagePreview: "Food is above its recent baseline.",
+        },
+        userMessage: {
+          id: "ai-user-message-1",
+          conversationId: "ai-conversation-1",
+          role: "USER",
+          intent: "OVERSPEND_EXPLANATION",
+          content: "Why did I overspend this month?",
+          insightCards: [],
+          followUpPrompts: [],
+          safetyFlags: [],
+          promptTokens: 0,
+          completionTokens: 0,
+          latencyMs: 0,
+          createdAt: "2026-06-10T08:00:00Z",
+        },
+        assistantMessage: {
+          id: "ai-assistant-message-1",
+          conversationId: "ai-conversation-1",
+          role: "ASSISTANT",
+          intent: "OVERSPEND_EXPLANATION",
+          content:
+            "Food is above its recent baseline by INR 2,000. This answer uses posted transactions and active budget summaries only.",
+          insightCards: [
+            {
+              type: "CATEGORY_IMPACT",
+              state: "CAUTION",
+              title: "Food",
+              body: "Largest current category pressure in the compact context.",
+              primaryValue: 18000,
+              comparisonValue: 16000,
+              actionLabel: "Explain category",
+              actionIntent: "CATEGORY_SAVINGS_IMPACT",
+            },
+          ],
+          followUpPrompts: [
+            "What changed compared to last month?",
+            "Which transaction should I inspect first?",
+          ],
+          safetyFlags: [],
+          provider: "LOCAL_DETERMINISTIC",
+          model: "spendsense-mentor-v1-local",
+          promptTokens: 42,
+          completionTokens: 58,
+          latencyMs: 12,
+          createdAt: "2026-06-10T08:00:01Z",
+        },
+        insightCards: [
+          {
+            type: "CATEGORY_IMPACT",
+            state: "CAUTION",
+            title: "Food",
+            body: "Largest current category pressure in the compact context.",
+            primaryValue: 18000,
+            comparisonValue: 16000,
+            actionLabel: "Explain category",
+            actionIntent: "CATEGORY_SAVINGS_IMPACT",
+          },
+        ],
+        followUpPrompts: [
+          "What changed compared to last month?",
+          "Which transaction should I inspect first?",
+        ],
+        usage: {
+          provider: "LOCAL_DETERMINISTIC",
+          model: "spendsense-mentor-v1-local",
+          promptTokens: 42,
+          completionTokens: 58,
+          totalTokens: 100,
+          estimatedCostMinor: 0,
+          currency: "INR",
+          latencyMs: 12,
+        },
+        grounded: true,
+        safetyLevel: "CLEAR",
+        citations: ["monthly summaries", "category trends"],
+      });
     }
     return json(route, null);
   });

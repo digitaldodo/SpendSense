@@ -13,6 +13,7 @@ public record SpendSenseProperties(
         Cors cors,
         Demo demo,
         Delivery delivery,
+        Ai ai,
         Performance performance,
         Operations operations
 ) {
@@ -52,6 +53,12 @@ public record SpendSenseProperties(
     }
 
     public record Webhooks(Boolean requireSignature, String resendSecret, String smtpFallbackSecret, String pushProviderSecret, Integer replayWindowSeconds) {
+    }
+
+    public record Ai(String provider, String model, Integer timeoutMs, Integer maxContextItems, Integer maxOutputTokens, BigDecimalCost estimatedCostPerThousandTokens) {
+    }
+
+    public record BigDecimalCost(java.math.BigDecimal input, java.math.BigDecimal output, String currency) {
     }
 
     public record Headers(String contentSecurityPolicy, String permissionsPolicy) {

@@ -79,6 +79,16 @@ spendsense:
       smtp-fallback-secret: ${SMTP_FALLBACK_WEBHOOK_SECRET:}
       push-provider-secret: ${PUSH_PROVIDER_WEBHOOK_SECRET:}
       replay-window-seconds: ${SPENDSENSE_WEBHOOK_REPLAY_WINDOW_SECONDS:300}
+  ai:
+    provider: ${SPENDSENSE_AI_PROVIDER:LOCAL_DETERMINISTIC}
+    model: ${SPENDSENSE_AI_MODEL:spendsense-mentor-v1-local}
+    timeout-ms: ${SPENDSENSE_AI_TIMEOUT_MS:3500}
+    max-context-items: ${SPENDSENSE_AI_MAX_CONTEXT_ITEMS:12}
+    max-output-tokens: ${SPENDSENSE_AI_MAX_OUTPUT_TOKENS:700}
+    estimated-cost-per-thousand-tokens:
+      input: ${SPENDSENSE_AI_INPUT_COST_PER_1K:0}
+      output: ${SPENDSENSE_AI_OUTPUT_COST_PER_1K:0}
+      currency: ${SPENDSENSE_AI_COST_CURRENCY:INR}
   performance:
     slow-request-threshold-ms: ${SPENDSENSE_SLOW_REQUEST_THRESHOLD_MS:750}
   operations:

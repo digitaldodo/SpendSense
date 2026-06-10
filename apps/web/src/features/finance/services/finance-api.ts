@@ -7,6 +7,12 @@ import type { ApiResponse } from "@/types/api";
 import type {
   Account,
   AccountMergePayload,
+  AiChatPayload,
+  AiChatResponse,
+  AiConversationDetail,
+  AiConversationSummary,
+  AiFeedbackPayload,
+  AiInsightCard,
   AffordabilityScenario,
   AffordabilityScenarioPayload,
   BalanceCorrectionPayload,
@@ -252,6 +258,47 @@ export async function calculateProjection(payload: ProjectionPayload = {}) {
 export async function getMonthlyReport(month?: string) {
   const response = await authenticatedApiClient<ApiResponse<GeneratedReport>>(
     `/api/v1/reports/monthly${month ? `?month=${encodeURIComponent(month)}` : ""}`
+  );
+  return response.data;
+}
+
+export async function getAiConversations() {
+  const response =
+    await authenticatedApiClient<ApiResponse<AiConversationSummary[]>>("/api/v1/ai/conversations");
+  return response.data;
+}
+
+export async function getAiConversation(conversationId: string) {
+  const response = await authenticatedApiClient<ApiResponse<AiConversationDetail>>(
+    `/api/v1/ai/conversations/${conversationId}`
+  );
+  return response.data;
+}
+
+export async function sendAiMessage(payload: AiChatPayload) {
+  const response = await authenticatedApiClient<ApiResponse<AiChatResponse>>(
+    "/api/v1/ai/conversations/messages",
+    {
+      method: "POST",
+      body: payload,
+    }
+  );
+  return response.data;
+}
+
+export async function getAiInsightTimeline() {
+  const response =
+    await authenticatedApiClient<ApiResponse<AiInsightCard[]>>("/api/v1/ai/insights/timeline");
+  return response.data;
+}
+
+export async function sendAiFeedback(messageId: string, payload: AiFeedbackPayload) {
+  const response = await authenticatedApiClient<ApiResponse<{ id: string }>>(
+    `/api/v1/ai/messages/${messageId}/feedback`,
+    {
+      method: "POST",
+      body: payload,
+    }
   );
   return response.data;
 }

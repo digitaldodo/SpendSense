@@ -12,6 +12,9 @@ import {
   deleteBudget,
   deleteSavingsGoal,
   getAccounts,
+  getAiConversation,
+  getAiConversations,
+  getAiInsightTimeline,
   getBudgetHistory,
   getBudgets,
   getCategories,
@@ -26,6 +29,8 @@ import {
   mergeCategory,
   mergeAccount,
   seedDemoFinanceData,
+  sendAiFeedback,
+  sendAiMessage,
   simulateAffordability,
   updateBudget,
   updateCategory,
@@ -34,6 +39,8 @@ import {
 } from "@/features/finance/services/finance-api";
 import type {
   AccountMergePayload,
+  AiChatPayload,
+  AiFeedbackPayload,
   AffordabilityScenarioPayload,
   BalanceCorrectionPayload,
   BudgetPayload,
@@ -56,6 +63,8 @@ export const savingsGoalsQueryKey = ["finance", "goals"] as const;
 export const insightsQueryKey = ["finance", "insights"] as const;
 export const financialHealthBreakdownQueryKey = ["finance", "financial-health-breakdown"] as const;
 export const monthlyReportQueryKey = ["finance", "reports", "monthly"] as const;
+export const aiConversationsQueryKey = ["finance", "ai", "conversations"] as const;
+export const aiInsightTimelineQueryKey = ["finance", "ai", "insight-timeline"] as const;
 
 export function useDashboardFinanceSummary() {
   return useQuery({
@@ -132,6 +141,48 @@ export function useMonthlyReport(month?: string) {
   return useQuery({
     queryKey: [...monthlyReportQueryKey, month],
     queryFn: () => getMonthlyReport(month),
+  });
+}
+
+export function useAiConversations() {
+  return useQuery({
+    queryKey: aiConversationsQueryKey,
+    queryFn: getAiConversations,
+    staleTime: 30_000,
+  });
+}
+
+export function useAiConversation(conversationId?: string | null) {
+  return useQuery({
+    queryKey: [...aiConversationsQueryKey, conversationId],
+    queryFn: () => getAiConversation(conversationId as string),
+    enabled: Boolean(conversationId),
+  });
+}
+
+export function useAiInsightTimeline() {
+  return useQuery({
+    queryKey: aiInsightTimelineQueryKey,
+    queryFn: getAiInsightTimeline,
+    staleTime: 60_000,
+  });
+}
+
+export function useSendAiMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AiChatPayload) => sendAiMessage(payload),
+    onSuccess(data) {
+      queryClient.invalidateQueries({ queryKey: aiConversationsQueryKey });
+      queryClient.invalidateQueries({ queryKey: [...aiConversationsQueryKey, data.conversation.id] });
+      queryClient.invalidateQueries({ queryKey: aiInsightTimelineQueryKey });
+    },
+  });
+}
+
+export function useSendAiFeedback(messageId?: string | null) {
+  return useMutation({
+    mutationFn: (payload: AiFeedbackPayload) => sendAiFeedback(messageId as string, payload),
   });
 }
 

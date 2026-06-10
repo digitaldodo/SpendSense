@@ -593,6 +593,87 @@ export type FinancialProjection = {
   notes: string[];
 };
 
+export type AiInsightCard = {
+  type: string;
+  state: BudgetState | "WAITING" | string;
+  title: string;
+  body: string;
+  primaryValue: number;
+  comparisonValue: number;
+  actionLabel: string;
+  actionIntent: string;
+};
+
+export type AiUsage = {
+  provider: string;
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  estimatedCostMinor: number;
+  currency: string;
+  latencyMs: number;
+};
+
+export type AiMessage = {
+  id: string;
+  conversationId: string;
+  role: "USER" | "ASSISTANT" | "SYSTEM";
+  intent: string;
+  content: string;
+  insightCards: AiInsightCard[];
+  followUpPrompts: string[];
+  safetyFlags: string[];
+  provider?: string | null;
+  model?: string | null;
+  promptTokens: number;
+  completionTokens: number;
+  latencyMs: number;
+  createdAt: string;
+};
+
+export type AiConversationSummary = {
+  id: string;
+  title: string;
+  status: string;
+  contextScope: string;
+  lastMessageAt: string;
+  createdAt: string;
+  lastMessagePreview?: string | null;
+};
+
+export type AiConversationDetail = {
+  conversation: AiConversationSummary;
+  messages: AiMessage[];
+};
+
+export type AiChatPayload = {
+  conversationId?: string;
+  prompt?: string;
+  intent?: string;
+  sourceTransactionId?: string;
+  sourceBudgetId?: string;
+  sourceGoalId?: string;
+};
+
+export type AiChatResponse = {
+  conversation: AiConversationSummary;
+  userMessage: AiMessage;
+  assistantMessage: AiMessage;
+  insightCards: AiInsightCard[];
+  followUpPrompts: string[];
+  usage: AiUsage;
+  grounded: boolean;
+  safetyLevel: string;
+  citations: string[];
+};
+
+export type AiFeedbackPayload = {
+  rating?: number;
+  feedbackType?: string;
+  comment?: string;
+};
+
 export type DashboardFinanceSummary = {
   accountCount: number;
   transactionCount: number;
